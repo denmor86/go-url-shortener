@@ -9,7 +9,7 @@ import (
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
 )
 
-func EncondeUrlHandler(storage storage.IStorage) http.Handler {
+func EncondeURLHandler(storage storage.IStorage) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 
@@ -24,22 +24,22 @@ func EncondeUrlHandler(storage storage.IStorage) http.Handler {
 				return
 			}
 
-			baseUrl := string(url)
+			baseURL := string(url)
 
-			if len(baseUrl) == 0 {
+			if len(baseURL) == 0 {
 				http.Error(w, "URL is empty", http.StatusBadRequest)
 				return
 			}
-			shortUrl := helpers.MakeShortUrl(baseUrl, 8)
-			storage.Save(baseUrl, shortUrl)
+			shortURL := helpers.MakeShortURL(baseURL, 8)
+			storage.Save(baseURL, shortURL)
 
 			w.Header().Set("content-type", "text/plain")
 			w.WriteHeader(http.StatusCreated)
-			w.Write(fmt.Appendf(nil, "http://%s/%s", r.Host, shortUrl))
+			w.Write(fmt.Appendf(nil, "http://%s/%s", r.Host, shortURL))
 		})
 }
 
-func DecodeUrlHandler(storage storage.IStorage) http.Handler {
+func DecodeURLHandler(storage storage.IStorage) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 
@@ -47,18 +47,18 @@ func DecodeUrlHandler(storage storage.IStorage) http.Handler {
 				http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
 				return
 			}
-			shortUrl := r.URL.Path[len("/"):]
-			if len(shortUrl) == 0 {
+			shortURL := r.URL.Path[len("/"):]
+			if len(shortURL) == 0 {
 				http.Error(w, "URL is empty", http.StatusBadRequest)
 				return
 			}
-			baseUrl, err := storage.Load(shortUrl)
+			baseURL, err := storage.Load(shortURL)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			w.Header().Set("Location", baseUrl)
+			w.Header().Set("Location", baseURL)
 			w.WriteHeader(http.StatusTemporaryRedirect)
-			w.Write([]byte(baseUrl))
+			w.Write([]byte(baseURL))
 		})
 }

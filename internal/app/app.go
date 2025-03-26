@@ -15,8 +15,8 @@ type App struct {
 
 func (a *App) Run() {
 	mux := http.NewServeMux()
-	mux.Handle("/", handlers.EncondeUrlHandler(a.Storage))
-	mux.Handle("/{id}", handlers.DecodeUrlHandler(a.Storage))
+	mux.Handle("/", handlers.EncondeURLHandler(a.Storage))
+	mux.Handle("/{id}", handlers.DecodeURLHandler(a.Storage))
 	err := http.ListenAndServe(a.Host+":"+a.Port, mux)
 	if err != nil {
 		panic(err)

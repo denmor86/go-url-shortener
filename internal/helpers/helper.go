@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func MakeShortUrl(urlValue string, size int) string {
+func MakeShortURL(urlValue string, size int) string {
 
 	data := fmt.Sprintf("%s%d", urlValue, time.Now().UnixNano())
 
