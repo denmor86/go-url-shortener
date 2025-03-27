@@ -9,56 +9,60 @@ import (
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
 )
 
-func EncondeURLHandler(storage storage.IStorage) http.Handler {
-	return http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
+func EncondeURLHandler(storage storage.IStorage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 
-			if r.Method != http.MethodPost {
-				http.Error(w, "Only POST requests are allowed!", http.StatusBadRequest)
-				return
-			}
+		if r.Method != http.MethodPost {
+			http.Error(w, "Only POST requests are allowed!", http.StatusBadRequest)
+			return
+		}
 
-			url, err := io.ReadAll(r.Body)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
+		path := r.URL.Path[len("/"):]
+		if path != "" {
+			http.Error(w, "Undefined request", http.StatusBadRequest)
+			return
+		}
 
-			baseURL := string(url)
+		url, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 
-			if len(baseURL) == 0 {
-				http.Error(w, "URL is empty", http.StatusBadRequest)
-				return
-			}
-			shortURL := helpers.MakeShortURL(baseURL, 8)
-			storage.Save(baseURL, shortURL)
+		baseURL := string(url)
 
-			w.Header().Set("content-type", "text/plain")
-			w.WriteHeader(http.StatusCreated)
-			w.Write(fmt.Appendf(nil, "http://%s/%s", r.Host, shortURL))
-		})
+		if len(baseURL) == 0 {
+			http.Error(w, "URL is empty", http.StatusBadRequest)
+			return
+		}
+		shortURL := helpers.MakeShortURL(baseURL, 8)
+		storage.Save(baseURL, shortURL)
+
+		w.Header().Set("content-type", "text/plain")
+		w.WriteHeader(http.StatusCreated)
+		w.Write(fmt.Appendf(nil, "http://%s/%s", r.Host, shortURL))
+	}
 }
 
-func DecodeURLHandler(storage storage.IStorage) http.Handler {
-	return http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
+func DecodeURLHandler(storage storage.IStorage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 
-			if r.Method != http.MethodGet {
-				http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
-				return
-			}
-			shortURL := r.URL.Path[len("/"):]
-			if len(shortURL) == 0 {
-				http.Error(w, "URL is empty", http.StatusBadRequest)
-				return
-			}
-			baseURL, err := storage.Load(shortURL)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			w.Header().Set("Location", baseURL)
-			w.WriteHeader(http.StatusTemporaryRedirect)
-			w.Write([]byte(baseURL))
-		})
+		if r.Method != http.MethodGet {
+			http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
+			return
+		}
+		shortURL := r.URL.Path[len("/"):]
+		if len(shortURL) == 0 {
+			http.Error(w, "URL is empty", http.StatusBadRequest)
+			return
+		}
+		baseURL, err := storage.Load(shortURL)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Location", baseURL)
+		w.WriteHeader(http.StatusTemporaryRedirect)
+		w.Write([]byte(baseURL))
+	}
 }
