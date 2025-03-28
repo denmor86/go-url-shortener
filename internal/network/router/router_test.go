@@ -51,5 +51,6 @@ func TestHandleRouter(t *testing.T) {
 	for _, v := range testTable {
 		resp := testRequest(t, ts, v.metod, v.url, v.body)
 		assert.Equal(t, v.status, resp.StatusCode)
+		defer resp.Body.Close()
 	}
 }
