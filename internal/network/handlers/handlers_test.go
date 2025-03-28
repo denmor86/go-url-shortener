@@ -48,28 +48,6 @@ func TestEncondeURLHandler(t *testing.T) {
 				bodyLen:     27,
 			},
 		},
-		{
-			name:    "Enconde test #3 (bad request 1)",
-			request: "/asdasd",
-			body:    "https://practicum.yandex.ru/",
-			storage: memory.NewMemStorage(),
-			want: want{
-				contentType: "text/plain; charset=utf-8",
-				statusCode:  400,
-				bodyLen:     18,
-			},
-		},
-		{
-			name:    "Enconde test #4 (bad request 2)",
-			request: "/asdasd/asdas",
-			body:    "https://practicum.yandex.ru/",
-			storage: memory.NewMemStorage(),
-			want: want{
-				contentType: "text/plain; charset=utf-8",
-				statusCode:  400,
-				bodyLen:     18,
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

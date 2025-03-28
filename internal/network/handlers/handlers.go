@@ -7,6 +7,7 @@ import (
 
 	"github.com/denmor86/go-url-shortener.git/internal/helpers"
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
+	"github.com/go-chi/chi/v5"
 )
 
 func EncondeURLHandler(storage storage.IStorage) http.HandlerFunc {
@@ -14,12 +15,6 @@ func EncondeURLHandler(storage storage.IStorage) http.HandlerFunc {
 
 		if r.Method != http.MethodPost {
 			http.Error(w, "Only POST requests are allowed!", http.StatusBadRequest)
-			return
-		}
-
-		path := r.URL.Path[len("/"):]
-		if path != "" {
-			http.Error(w, "Undefined request", http.StatusBadRequest)
 			return
 		}
 
@@ -51,16 +46,27 @@ func DecodeURLHandler(storage storage.IStorage) http.HandlerFunc {
 			http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
 			return
 		}
-		shortURL := r.URL.Path[len("/"):]
-		if len(shortURL) == 0 {
+
+		var shortURL string
+		id := chi.URLParam(r, "id")
+		if id != "" {
+			shortURL = id
+		} else {
+			// обратная совместимость
+			shortURL = r.URL.Path[len("/"):]
+		}
+
+		if shortURL == "" {
 			http.Error(w, "URL is empty", http.StatusBadRequest)
 			return
 		}
+
 		baseURL, err := storage.Load(shortURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
 		w.Header().Set("Location", baseURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		w.Write([]byte(baseURL))

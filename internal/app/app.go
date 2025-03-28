@@ -3,7 +3,7 @@ package app
 import (
 	"net/http"
 
-	"github.com/denmor86/go-url-shortener.git/internal/network/handlers"
+	"github.com/denmor86/go-url-shortener.git/internal/network/router"
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
 )
 
@@ -14,10 +14,8 @@ type App struct {
 }
 
 func (a *App) Run() {
-	mux := http.NewServeMux()
-	mux.Handle("/", handlers.EncondeURLHandler(a.Storage))
-	mux.Handle("/{id}", handlers.DecodeURLHandler(a.Storage))
-	err := http.ListenAndServe(a.Host+":"+a.Port, mux)
+
+	err := http.ListenAndServe(a.Host+":"+a.Port, router.HandleRouter(a.Storage))
 	if err != nil {
 		panic(err)
 	}
