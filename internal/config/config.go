@@ -47,20 +47,20 @@ func NewConfig() *Config {
 
 	listenAddr := new(NetAddress)
 	flag.Var(listenAddr, "a", "Server listen address in a form host:port.")
+	baseURL := flag.String("b", DefaultBaseURL, "Server base URL.")
+	ShortURLLen := flag.Int("l", DefaultShortURLlen, "Short URL length.")
+
+	flag.Parse()
+
 	if listenAddr.Host == "" {
 		listenAddr = &NetAddress{DefaultListenHost, DefaultListenPort}
 	}
-	baseURL := flag.String("b", DefaultBaseURL, "Server base URL.")
 	if *baseURL == "" {
 		*baseURL = DefaultBaseURL
 	}
-
-	ShortURLLen := flag.Int("l", DefaultShortURLlen, "Short URL length.")
 	if *ShortURLLen > DefaultShortURLlen {
 		*ShortURLLen = DefaultShortURLlen
 	}
-
-	flag.Parse()
 
 	return &Config{
 		ListenAddr:  *listenAddr,
