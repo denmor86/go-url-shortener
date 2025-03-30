@@ -15,7 +15,7 @@ type NetAddress struct {
 type Config struct {
 	ListenAddr  NetAddress
 	BaseURL     string
-	LenShortURL int
+	ShortURLLen int
 }
 
 func (a NetAddress) String() string {
@@ -36,19 +36,28 @@ func (a *NetAddress) Set(s string) error {
 	return nil
 }
 
+const (
+	DefaultListenHost  = "localhost"
+	DefaultListenPort  = 8080
+	DefaultBaseURL     = "http://localhost:8080"
+	DefaultShortURLlen = 8
+)
+
 func NewConfig() *Config {
 
 	listenAddr := new(NetAddress)
 	flag.Var(listenAddr, "a", "Server listen address in a form host:port.")
-
-	baseURL := flag.String("b", "http://localhost:8080/", "Server base URL.")
+	if listenAddr.Host == "" {
+		listenAddr = &NetAddress{DefaultListenHost, DefaultListenPort}
+	}
+	baseURL := flag.String("b", DefaultBaseURL, "Server base URL.")
 	if *baseURL == "" {
-		*baseURL = "http://localhost:8080"
+		*baseURL = DefaultBaseURL
 	}
 
-	lenShortURL := flag.Int("l", 8, "Len short URL.")
-	if *lenShortURL > 8 {
-		*lenShortURL = 8
+	ShortURLLen := flag.Int("l", DefaultShortURLlen, "Short URL length.")
+	if *ShortURLLen > DefaultShortURLlen {
+		*ShortURLLen = DefaultShortURLlen
 	}
 
 	flag.Parse()
@@ -56,17 +65,14 @@ func NewConfig() *Config {
 	return &Config{
 		ListenAddr:  *listenAddr,
 		BaseURL:     *baseURL,
-		LenShortURL: *lenShortURL,
+		ShortURLLen: *ShortURLLen,
 	}
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		ListenAddr: NetAddress{
-			Host: "localhost",
-			Port: 8080,
-		},
-		BaseURL:     "http://localhost:8080/",
-		LenShortURL: 8,
+		ListenAddr:  NetAddress{DefaultListenHost, DefaultListenPort},
+		BaseURL:     DefaultBaseURL,
+		ShortURLLen: DefaultShortURLlen,
 	}
 }

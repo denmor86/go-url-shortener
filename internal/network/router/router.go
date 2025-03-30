@@ -10,7 +10,7 @@ import (
 func HandleRouter(config config.Config, storage storage.IStorage) chi.Router {
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
-		r.Post("/", handlers.EncondeURLHandler(config.BaseURL, config.LenShortURL, storage)) // POST /
+		r.Post("/", handlers.EncondeURLHandler(config.BaseURL, config.ShortURLLen, storage)) // POST /
 		r.Route("/{id}", func(r chi.Router) {
 			r.Get("/", handlers.DecodeURLHandler(storage)) // GET /shortURL
 		})
