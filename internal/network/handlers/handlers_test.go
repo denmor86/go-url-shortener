@@ -20,17 +20,21 @@ func TestEncondeURLHandler(t *testing.T) {
 		bodyLen     int
 	}
 	tests := []struct {
-		name    string
-		request string
-		body    string
-		storage storage.IStorage
-		want    want
+		name        string
+		request     string
+		baseURL     string
+		lenShortURL int
+		body        string
+		storage     storage.IStorage
+		want        want
 	}{
 		{
-			name:    "Enconde test #1 (empty body)",
-			request: "/",
-			body:    "",
-			storage: memory.NewMemStorage(),
+			name:        "Enconde test #1 (empty body)",
+			request:     "/",
+			baseURL:     "http://localhost:8080",
+			lenShortURL: 8,
+			body:        "",
+			storage:     memory.NewMemStorage(),
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
@@ -38,14 +42,16 @@ func TestEncondeURLHandler(t *testing.T) {
 			},
 		},
 		{
-			name:    "Enconde test #2 (good body)",
-			request: "/",
-			body:    "https://practicum.yandex.ru/",
-			storage: memory.NewMemStorage(),
+			name:        "Enconde test #2 (good body)",
+			request:     "/",
+			baseURL:     "http://localhost:8080/",
+			lenShortURL: 8,
+			body:        "https://practicum.yandex.ru/",
+			storage:     memory.NewMemStorage(),
 			want: want{
 				contentType: "text/plain",
 				statusCode:  201,
-				bodyLen:     27,
+				bodyLen:     len("http://localhost:8080/") + 8,
 			},
 		},
 	}
@@ -53,7 +59,7 @@ func TestEncondeURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(EncondeURLHandler(tt.storage))
+			h := http.HandlerFunc(EncondeURLHandler(tt.baseURL, tt.lenShortURL, tt.storage))
 			h(w, request)
 
 			result := w.Result()

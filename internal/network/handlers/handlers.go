@@ -1,16 +1,16 @@
 package handlers
 
 import (
-	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/denmor86/go-url-shortener.git/internal/helpers"
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
 
-func EncondeURLHandler(storage storage.IStorage) http.HandlerFunc {
+func EncondeURLHandler(baseURL string, lenShortURL int, storage storage.IStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Method != http.MethodPost {
@@ -18,24 +18,34 @@ func EncondeURLHandler(storage storage.IStorage) http.HandlerFunc {
 			return
 		}
 
-		url, err := io.ReadAll(r.Body)
+		data, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		baseURL := string(url)
+		url := string(data)
 
-		if len(baseURL) == 0 {
+		if len(url) == 0 {
 			http.Error(w, "URL is empty", http.StatusBadRequest)
 			return
 		}
-		shortURL := helpers.MakeShortURL(baseURL, 8)
-		storage.Save(baseURL, shortURL)
+		shortURL := helpers.MakeShortURL(url, lenShortURL)
+		storage.Save(url, shortURL)
+
+		makeURL := func(baseURL, shortURL string) string {
+			var fullURL string
+			fullURL = baseURL
+			if !strings.HasSuffix(fullURL, "/") {
+				fullURL += "/"
+			}
+			fullURL += shortURL
+			return fullURL
+		}
 
 		w.Header().Set("content-type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
-		w.Write(fmt.Appendf(nil, "http://%s/%s", r.Host, shortURL))
+		w.Write([]byte(makeURL(baseURL, shortURL)))
 	}
 }
 
@@ -61,14 +71,14 @@ func DecodeURLHandler(storage storage.IStorage) http.HandlerFunc {
 			return
 		}
 
-		baseURL, err := storage.Load(shortURL)
+		url, err := storage.Load(shortURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		w.Header().Set("Location", baseURL)
+		w.Header().Set("Location", url)
 		w.WriteHeader(http.StatusTemporaryRedirect)
-		w.Write([]byte(baseURL))
+		w.Write([]byte(url))
 	}
 }
