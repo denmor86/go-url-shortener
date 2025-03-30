@@ -9,7 +9,7 @@ import (
 
 type NetAddress struct {
 	Host string
-	Port int16
+	Port uint16
 }
 
 type Config struct {
@@ -32,7 +32,7 @@ func (a *NetAddress) Set(s string) error {
 		return err
 	}
 	a.Host = hp[0]
-	a.Port = int16(port)
+	a.Port = uint16(port)
 	return nil
 }
 
