@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"flag"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -45,27 +46,41 @@ const (
 
 func NewConfig() *Config {
 
-	listenAddr := new(NetAddress)
-	flag.Var(listenAddr, "a", "Server listen address in a form host:port.")
-	baseURL := flag.String("b", DefaultBaseURL, "Server base URL.")
-	ShortURLLen := flag.Int("l", DefaultShortURLlen, "Short URL length.")
+	var listenAddr NetAddress
+	flag.Var(&listenAddr, "a", "Server listen address in a form host:port.")
+
+	var baseURL string
+	flag.StringVar(&baseURL, "b", DefaultBaseURL, "Server base URL.")
+
+	var shortURLLen int
+	flag.IntVar(&shortURLLen, "l", DefaultShortURLlen, "Short URL length.")
 
 	flag.Parse()
 
+	if listenAddrEnv := os.Getenv("SERVER_ADDRESS"); listenAddrEnv != "" {
+		if err := listenAddr.Set(listenAddrEnv); err != nil {
+			listenAddr = NetAddress{DefaultListenHost, DefaultListenPort}
+		}
+	}
+
+	if baseURLEnv := os.Getenv("BASE_URL"); baseURLEnv != "" {
+		baseURL = baseURLEnv
+	}
+
 	if listenAddr.Host == "" {
-		listenAddr = &NetAddress{DefaultListenHost, DefaultListenPort}
+		listenAddr = NetAddress{DefaultListenHost, DefaultListenPort}
 	}
-	if *baseURL == "" {
-		*baseURL = DefaultBaseURL
+	if baseURL == "" {
+		baseURL = DefaultBaseURL
 	}
-	if *ShortURLLen > DefaultShortURLlen {
-		*ShortURLLen = DefaultShortURLlen
+	if shortURLLen > DefaultShortURLlen {
+		shortURLLen = DefaultShortURLlen
 	}
 
 	return &Config{
-		ListenAddr:  *listenAddr,
-		BaseURL:     *baseURL,
-		ShortURLLen: *ShortURLLen,
+		ListenAddr:  listenAddr,
+		BaseURL:     baseURL,
+		ShortURLLen: shortURLLen,
 	}
 }
 
