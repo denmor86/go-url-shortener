@@ -27,8 +27,8 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 func TestHandleRouter(t *testing.T) {
 	config := config.DefaultConfig()
 	memstorage := memory.NewMemStorage()
-	memstorage.Save("https://practicum.yandex.ru/", "12345678")
-	memstorage.Save("https://google.com", "iFBc_bhG")
+	memstorage.Add("https://practicum.yandex.ru/", "12345678")
+	memstorage.Add("https://google.com", "iFBc_bhG")
 
 	ts := httptest.NewServer(HandleRouter(*config, memstorage))
 	defer ts.Close()

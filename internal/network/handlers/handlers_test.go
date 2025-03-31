@@ -80,8 +80,8 @@ func TestEncondeURLHandler(t *testing.T) {
 func TestDecodeURLHandler(t *testing.T) {
 
 	memstorage := memory.NewMemStorage()
-	memstorage.Save("https://practicum.yandex.ru/", "12345678")
-	memstorage.Save("https://google.com", "iFBc_bhG")
+	memstorage.Add("https://practicum.yandex.ru/", "12345678")
+	memstorage.Add("https://google.com", "iFBc_bhG")
 
 	type want struct {
 		contentType string
