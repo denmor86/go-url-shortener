@@ -13,11 +13,6 @@ import (
 func EncondeURLHandler(baseURL string, lenShortURL int, storage storage.IStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		if r.Method != http.MethodPost {
-			http.Error(w, "Only POST requests are allowed!", http.StatusBadRequest)
-			return
-		}
-
 		data, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -52,11 +47,6 @@ func EncondeURLHandler(baseURL string, lenShortURL int, storage storage.IStorage
 
 func DecodeURLHandler(storage storage.IStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		if r.Method != http.MethodGet {
-			http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
-			return
-		}
 
 		var shortURL string
 		id := chi.URLParam(r, "id")
