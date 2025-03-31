@@ -30,8 +30,9 @@ func EncondeURLHandler(baseURL string, lenShortURL int, storage storage.IStorage
 			http.Error(w, "URL is empty", http.StatusBadRequest)
 			return
 		}
+
 		shortURL := helpers.MakeShortURL(url, lenShortURL)
-		storage.Save(url, shortURL)
+		storage.Add(url, shortURL)
 
 		makeURL := func(baseURL, shortURL string) string {
 			var fullURL string
@@ -71,7 +72,7 @@ func DecodeURLHandler(storage storage.IStorage) http.HandlerFunc {
 			return
 		}
 
-		url, err := storage.Load(shortURL)
+		url, err := storage.Get(shortURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

@@ -16,13 +16,13 @@ func NewMemStorage() *MemStorage {
 	return &s
 }
 
-func (s *MemStorage) Save(longURL string, shortURL string) {
+func (s *MemStorage) Add(longURL string, shortURL string) {
 	s.Lock()
 	s.Urls[shortURL] = longURL
 	s.Unlock()
 }
 
-func (s *MemStorage) Load(shortURL string) (string, error) {
+func (s *MemStorage) Get(shortURL string) (string, error) {
 	s.Lock()
 	longURL, exist := s.Urls[shortURL]
 	s.Unlock()
