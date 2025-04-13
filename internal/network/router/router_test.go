@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/denmor86/go-url-shortener.git/internal/config"
+	"github.com/denmor86/go-url-shortener.git/internal/logger"
 	"github.com/denmor86/go-url-shortener.git/internal/storage/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,6 +27,10 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 
 func TestHandleRouter(t *testing.T) {
 	config := config.DefaultConfig()
+	if err := logger.Initialize(config.LogLevel); err != nil {
+		logger.Panic(err)
+	}
+	defer logger.Sync()
 	memstorage := memory.NewMemStorage()
 	memstorage.Add("https://practicum.yandex.ru/", "12345678")
 	memstorage.Add("https://google.com", "iFBc_bhG")
