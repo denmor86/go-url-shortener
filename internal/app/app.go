@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/denmor86/go-url-shortener.git/internal/config"
+	"github.com/denmor86/go-url-shortener.git/internal/logger"
 	"github.com/denmor86/go-url-shortener.git/internal/network/router"
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
 )
@@ -14,9 +15,16 @@ type App struct {
 }
 
 func (a *App) Run() {
+	if err := logger.Initialize(a.Config.LogLevel); err != nil {
+		logger.Panic(err)
+	}
+	defer logger.Sync()
 
+	logger.Info(
+		"Starting server:", a.Config.ListenAddr,
+	)
 	err := http.ListenAndServe(a.Config.ListenAddr, router.HandleRouter(a.Config, a.Storage))
 	if err != nil {
-		panic(err)
+		logger.Panic(err)
 	}
 }
