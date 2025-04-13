@@ -15,7 +15,7 @@ type App struct {
 
 func (a *App) Run() {
 
-	err := http.ListenAndServe(a.Config.ListenAddr.String(), router.HandleRouter(a.Config, a.Storage))
+	err := http.ListenAndServe(a.Config.ListenAddr, router.HandleRouter(a.Config, a.Storage))
 	if err != nil {
 		panic(err)
 	}

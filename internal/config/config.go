@@ -1,92 +1,58 @@
 package config
 
 import (
-	"errors"
-	"flag"
-	"os"
-	"strconv"
-	"strings"
+	"log"
+
+	"github.com/caarlos0/env"
+	"github.com/spf13/pflag"
 )
 
-type NetAddress struct {
-	Host string
-	Port uint16
-}
-
 type Config struct {
-	ListenAddr  NetAddress
-	BaseURL     string
-	ShortURLLen int
-}
-
-func (a NetAddress) String() string {
-	return a.Host + ":" + strconv.Itoa(int(a.Port))
-}
-
-func (a *NetAddress) Set(s string) error {
-	hp := strings.Split(s, ":")
-	if len(hp) != 2 {
-		return errors.New("need address in a form host:port")
-	}
-	port, err := strconv.Atoi(hp[1])
-	if err != nil {
-		return err
-	}
-	a.Host = hp[0]
-	a.Port = uint16(port)
-	return nil
+	ListenAddr  string `env:"SERVER_ADDRESS"`
+	BaseURL     string `env:"BASE_URL"`
+	ShortURLLen int    `env:"MAX_URL_LEN" envDefault:"8"`
 }
 
 const (
-	DefaultListenHost  = "localhost"
-	DefaultListenPort  = 8080
-	DefaultBaseURL     = "http://localhost:8080"
-	DefaultShortURLlen = 8
+	DefaultListenServer = "localhost:8080"
+	DefaultBaseURL      = "http://localhost:8080"
+	DefaultShortURLlen  = 8
 )
 
 func NewConfig() *Config {
 
-	var listenAddr NetAddress
-	flag.Var(&listenAddr, "a", "Server listen address in a form host:port.")
+	pflag.StringP("server", "a", DefaultListenServer, "Server listen address in a form host:port.")
+	pflag.StringP("base_url", "b", DefaultBaseURL, "Server base URL.")
+	pflag.IntP("url_len", "l", DefaultShortURLlen, "Short URL length.")
+	pflag.Parse()
 
-	var baseURL string
-	flag.StringVar(&baseURL, "b", DefaultBaseURL, "Server base URL.")
+	var config Config
+	if err := env.Parse(&config); err != nil {
+		log.Fatalf("Failed to parse enviroment var: %v", err)
+	}
 
-	var shortURLLen int
-	flag.IntVar(&shortURLLen, "l", DefaultShortURLlen, "Short URL length.")
-
-	flag.Parse()
-
-	if listenAddrEnv := os.Getenv("SERVER_ADDRESS"); listenAddrEnv != "" {
-		if err := listenAddr.Set(listenAddrEnv); err != nil {
-			listenAddr = NetAddress{DefaultListenHost, DefaultListenPort}
+	if config.ListenAddr == "" {
+		if address, err := pflag.CommandLine.GetString("server"); err == nil {
+			config.ListenAddr = address
+		}
+	}
+	if config.BaseURL == "" {
+		if baseUrl, err := pflag.CommandLine.GetString("base_url"); err == nil {
+			config.BaseURL = baseUrl
+		}
+	}
+	if config.ShortURLLen == DefaultShortURLlen {
+		if url_len, err := pflag.CommandLine.GetInt("url_len"); err == nil {
+			config.ShortURLLen = url_len
 		}
 	}
 
-	if baseURLEnv := os.Getenv("BASE_URL"); baseURLEnv != "" {
-		baseURL = baseURLEnv
-	}
-
-	if listenAddr.Host == "" {
-		listenAddr = NetAddress{DefaultListenHost, DefaultListenPort}
-	}
-	if baseURL == "" {
-		baseURL = DefaultBaseURL
-	}
-	if shortURLLen > DefaultShortURLlen {
-		shortURLLen = DefaultShortURLlen
-	}
-
-	return &Config{
-		ListenAddr:  listenAddr,
-		BaseURL:     baseURL,
-		ShortURLLen: shortURLLen,
-	}
+	return &config
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		ListenAddr:  NetAddress{DefaultListenHost, DefaultListenPort},
+		ListenAddr:  DefaultListenServer,
 		BaseURL:     DefaultBaseURL,
 		ShortURLLen: DefaultShortURLlen,
 	}
