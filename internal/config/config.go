@@ -39,8 +39,8 @@ func NewConfig() *Config {
 		}
 	}
 	if config.BaseURL == "" {
-		if baseUrl, err := pflag.CommandLine.GetString("base_url"); err == nil {
-			config.BaseURL = baseUrl
+		if baseURL, err := pflag.CommandLine.GetString("base_url"); err == nil {
+			config.BaseURL = baseURL
 		}
 	}
 	if config.ShortURLLen == DefaultShortURLlen {
