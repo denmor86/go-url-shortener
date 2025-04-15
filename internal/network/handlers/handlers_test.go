@@ -155,3 +155,93 @@ func TestDecodeURLHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestEncondeJsonURLHandler(t *testing.T) {
+	type want struct {
+		contentType string
+		statusCode  int
+		bodyLen     int
+	}
+	tests := []struct {
+		name        string
+		request     string
+		baseURL     string
+		lenShortURL int
+		body        string
+		storage     storage.IStorage
+		want        want
+	}{
+		{
+			name:        "Enconde test #1 (empty body)",
+			request:     "/",
+			baseURL:     "http://localhost:8080",
+			lenShortURL: 8,
+			body:        "",
+			storage:     memory.NewMemStorage(),
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				bodyLen:     29,
+			},
+		},
+		{
+			name:        "Enconde test #2 (bad body, invalid node)",
+			request:     "/",
+			baseURL:     "http://localhost:8080",
+			lenShortURL: 8,
+			body:        "{\"test\": \"https://practicum.yandex.ru\"}",
+			storage:     memory.NewMemStorage(),
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				bodyLen:     13,
+			},
+		},
+		{
+			name:        "Enconde test #3 (bad body, xml format)",
+			request:     "/",
+			baseURL:     "http://localhost:8080",
+			lenShortURL: 8,
+			body:        "<request><url>google.com</url></request>",
+			storage:     memory.NewMemStorage(),
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				bodyLen:     53,
+			},
+		},
+		{
+			name:        "Enconde test #4 (good body)",
+			request:     "/",
+			baseURL:     "http://localhost:8080/",
+			lenShortURL: 8,
+			body:        "{\"url\": \"https://practicum.yandex.ru\"}",
+			storage:     memory.NewMemStorage(),
+			want: want{
+				contentType: "application/json",
+				statusCode:  201,
+				bodyLen:     len("http://localhost:8080/") + 21,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
+			w := httptest.NewRecorder()
+			h := http.HandlerFunc(EncondeURLJsonHandler(tt.baseURL, tt.lenShortURL, tt.storage))
+			h(w, request)
+
+			result := w.Result()
+
+			assert.Equal(t, tt.want.statusCode, result.StatusCode)
+			assert.Equal(t, tt.want.contentType, result.Header.Get("Content-Type"))
+
+			body, err := io.ReadAll(result.Body)
+			require.NoError(t, err)
+			err = result.Body.Close()
+			require.NoError(t, err)
+			//так как короткая ссылка случайная, проверяем длину тела ответа
+			assert.Equal(t, tt.want.bodyLen, len(body), string(body))
+		})
+	}
+}

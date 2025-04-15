@@ -49,11 +49,16 @@ func TestHandleRouter(t *testing.T) {
 		{"/iFBc_bhG", "GET", nil, http.StatusOK},
 		{"/", "POST", strings.NewReader("https://practicum.yandex.ru/"), http.StatusCreated},
 		{"/", "POST", strings.NewReader("https://google.com"), http.StatusCreated},
+		{"/api/shorten", "POST", strings.NewReader("{\"url\": \"https://practicum.yandex.ru\"}"), http.StatusCreated},
+		{"/api/shorten", "POST", strings.NewReader("{\"url\": \"https://google.com\", \"test\": \"test message\"}"), http.StatusCreated},
 		// bad
 		{"/asdasdasd", "GET", nil, http.StatusBadRequest},
 		{"/", "GET", nil, http.StatusMethodNotAllowed},
 		{"/1234", "POST", strings.NewReader("https://practicum.yandex.ru/"), http.StatusMethodNotAllowed},
 		{"/12345678/1234", "POST", strings.NewReader("https://practicum.yandex.ru/"), http.StatusNotFound},
+		{"/api/shorten", "POST", strings.NewReader("{\"test\": \"https://practicum.yandex.ru\"}"), http.StatusBadRequest},
+		{"/api/shorten", "POST", strings.NewReader("<request><url>google.com</url></request>"), http.StatusBadRequest},
+		{"/api/shorten1", "POST", strings.NewReader("{\"url\": \"https://practicum.yandex.ru\"}"), http.StatusNotFound},
 	}
 	for _, v := range testTable {
 		resp := testRequest(t, ts, v.metod, v.url, v.body)
