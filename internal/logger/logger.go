@@ -1,39 +1,10 @@
 package logger
 
 import (
-	"net/http"
 	"sync"
-	"time"
 
 	"go.uber.org/zap"
 )
-
-type (
-	// берём структуру для хранения сведений об ответе
-	responseData struct {
-		status int
-		size   int
-	}
-
-	// добавляем реализацию http.ResponseWriter
-	loggingResponseWriter struct {
-		http.ResponseWriter // встраиваем оригинальный http.ResponseWriter
-		responseData        *responseData
-	}
-)
-
-func (r *loggingResponseWriter) Write(b []byte) (int, error) {
-	// записываем ответ, используя оригинальный http.ResponseWriter
-	size, err := r.ResponseWriter.Write(b)
-	r.responseData.size += size // захватываем размер
-	return size, err
-}
-
-func (r *loggingResponseWriter) WriteHeader(statusCode int) {
-	// записываем код статуса, используя оригинальный http.ResponseWriter
-	r.ResponseWriter.WriteHeader(statusCode)
-	r.responseData.status = statusCode // захватываем код статуса
-}
 
 var (
 	once     sync.Once
@@ -100,33 +71,4 @@ func Error(args ...interface{}) {
 // Panic — обертка над методом логирования уровня Panic
 func Panic(args ...interface{}) {
 	Get().Panicln(args...)
-}
-
-// RequestLogger — middleware-логер для входящих HTTP-запросов.
-func RequestLogger(h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		start := time.Now()
-
-		responseData := &responseData{
-			status: 0,
-			size:   0,
-		}
-		lw := loggingResponseWriter{
-			ResponseWriter: w, // встраиваем оригинальный http.ResponseWriter
-			responseData:   responseData,
-		}
-
-		h(&lw, r)
-
-		duration := time.Since(start)
-
-		Info("got incoming HTTP request",
-			"uri", r.RequestURI,
-			"method", r.Method,
-			"status", responseData.status,
-			"duration", duration,
-			"size", responseData.size,
-		)
-	}
 }
