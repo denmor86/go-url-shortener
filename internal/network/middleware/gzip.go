@@ -27,11 +27,11 @@ func (c *compressWriter) Header() http.Header {
 
 func (c *compressWriter) Write(p []byte) (int, error) {
 	contentType := c.w.Header().Get("Content-Type")
-	isJsonContent := strings.Contains(contentType, "application/json")
+	isJSONContent := strings.Contains(contentType, "application/json")
 	isHTMLContent := strings.Contains(contentType, "text/html")
 	isPlainContent := strings.Contains(contentType, "text/plain")
 	// упаковываем контент определенных типов
-	if isJsonContent || isHTMLContent || isPlainContent {
+	if isJSONContent || isHTMLContent || isPlainContent {
 		return c.zw.Write(p)
 	}
 	return c.w.Write(p)
