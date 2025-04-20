@@ -1,4 +1,4 @@
-package memory
+package storage
 
 import (
 	"fmt"
@@ -16,10 +16,11 @@ func NewMemStorage() *MemStorage {
 	return &s
 }
 
-func (s *MemStorage) Add(longURL string, shortURL string) {
+func (s *MemStorage) Add(longURL string, shortURL string) error {
 	s.Lock()
 	s.Urls[shortURL] = longURL
 	s.Unlock()
+	return nil
 }
 
 func (s *MemStorage) Get(shortURL string) (string, error) {

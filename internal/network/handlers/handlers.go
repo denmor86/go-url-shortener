@@ -8,11 +8,15 @@ import (
 
 	"github.com/denmor86/go-url-shortener.git/internal/helpers"
 	"github.com/denmor86/go-url-shortener.git/internal/models"
-	"github.com/denmor86/go-url-shortener.git/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
 
-func EncondeURLHandler(baseURL string, lenShortURL int, storage storage.IStorage) http.HandlerFunc {
+type IBaseStorage interface {
+	Add(string, string) error
+	Get(string) (string, error)
+}
+
+func EncondeURLHandler(baseURL string, lenShortURL int, storage IBaseStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		data, err := io.ReadAll(r.Body)
@@ -37,7 +41,7 @@ func EncondeURLHandler(baseURL string, lenShortURL int, storage storage.IStorage
 	}
 }
 
-func DecodeURLHandler(storage storage.IStorage) http.HandlerFunc {
+func DecodeURLHandler(storage IBaseStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		var shortURL string
@@ -66,7 +70,7 @@ func DecodeURLHandler(storage storage.IStorage) http.HandlerFunc {
 	}
 }
 
-func EncondeURLJsonHandler(baseURL string, lenShortURL int, storage storage.IStorage) http.HandlerFunc {
+func EncondeURLJsonHandler(baseURL string, lenShortURL int, storage IBaseStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		var buf bytes.Buffer

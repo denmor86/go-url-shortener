@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
-	"github.com/denmor86/go-url-shortener.git/internal/storage/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +24,7 @@ func TestEncondeURLHandler(t *testing.T) {
 		baseURL     string
 		lenShortURL int
 		body        string
-		storage     storage.IStorage
+		storage     IBaseStorage
 		want        want
 	}{
 		{
@@ -34,7 +33,7 @@ func TestEncondeURLHandler(t *testing.T) {
 			baseURL:     "http://localhost:8080",
 			lenShortURL: 8,
 			body:        "",
-			storage:     memory.NewMemStorage(),
+			storage:     storage.NewMemStorage(),
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
@@ -47,7 +46,7 @@ func TestEncondeURLHandler(t *testing.T) {
 			baseURL:     "http://localhost:8080/",
 			lenShortURL: 8,
 			body:        "https://practicum.yandex.ru/",
-			storage:     memory.NewMemStorage(),
+			storage:     storage.NewMemStorage(),
 			want: want{
 				contentType: "text/plain",
 				statusCode:  201,
@@ -79,7 +78,7 @@ func TestEncondeURLHandler(t *testing.T) {
 
 func TestDecodeURLHandler(t *testing.T) {
 
-	memstorage := memory.NewMemStorage()
+	memstorage := storage.NewMemStorage()
 	memstorage.Add("https://practicum.yandex.ru/", "12345678")
 	memstorage.Add("https://google.com", "iFBc_bhG")
 
@@ -91,7 +90,7 @@ func TestDecodeURLHandler(t *testing.T) {
 	tests := []struct {
 		name    string
 		request string
-		storage storage.IStorage
+		storage IBaseStorage
 		want    want
 	}{
 		{
@@ -168,7 +167,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 		baseURL     string
 		lenShortURL int
 		body        string
-		storage     storage.IStorage
+		storage     IBaseStorage
 		want        want
 	}{
 		{
@@ -177,7 +176,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 			baseURL:     "http://localhost:8080",
 			lenShortURL: 8,
 			body:        "",
-			storage:     memory.NewMemStorage(),
+			storage:     storage.NewMemStorage(),
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
@@ -190,7 +189,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 			baseURL:     "http://localhost:8080",
 			lenShortURL: 8,
 			body:        "{\"test\": \"https://practicum.yandex.ru\"}",
-			storage:     memory.NewMemStorage(),
+			storage:     storage.NewMemStorage(),
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
@@ -203,7 +202,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 			baseURL:     "http://localhost:8080",
 			lenShortURL: 8,
 			body:        "<request><url>google.com</url></request>",
-			storage:     memory.NewMemStorage(),
+			storage:     storage.NewMemStorage(),
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
@@ -216,7 +215,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 			baseURL:     "http://localhost:8080/",
 			lenShortURL: 8,
 			body:        "{\"url\": \"https://practicum.yandex.ru\"}",
-			storage:     memory.NewMemStorage(),
+			storage:     storage.NewMemStorage(),
 			want: want{
 				contentType: "application/json",
 				statusCode:  201,
