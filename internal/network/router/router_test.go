@@ -8,7 +8,8 @@ import (
 	"testing"
 
 	"github.com/denmor86/go-url-shortener.git/internal/config"
-	"github.com/denmor86/go-url-shortener.git/internal/storage/memory"
+	"github.com/denmor86/go-url-shortener.git/internal/logger"
+	"github.com/denmor86/go-url-shortener.git/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +27,11 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 
 func TestHandleRouter(t *testing.T) {
 	config := config.DefaultConfig()
-	memstorage := memory.NewMemStorage()
+	if err := logger.Initialize(config.LogLevel); err != nil {
+		logger.Panic(err)
+	}
+	defer logger.Sync()
+	memstorage := storage.NewMemStorage()
 	memstorage.Add("https://practicum.yandex.ru/", "12345678")
 	memstorage.Add("https://google.com", "iFBc_bhG")
 
@@ -44,11 +49,16 @@ func TestHandleRouter(t *testing.T) {
 		{"/iFBc_bhG", "GET", nil, http.StatusOK},
 		{"/", "POST", strings.NewReader("https://practicum.yandex.ru/"), http.StatusCreated},
 		{"/", "POST", strings.NewReader("https://google.com"), http.StatusCreated},
+		{"/api/shorten", "POST", strings.NewReader("{\"url\": \"https://practicum.yandex.ru\"}"), http.StatusCreated},
+		{"/api/shorten", "POST", strings.NewReader("{\"url\": \"https://google.com\", \"test\": \"test message\"}"), http.StatusCreated},
 		// bad
 		{"/asdasdasd", "GET", nil, http.StatusBadRequest},
 		{"/", "GET", nil, http.StatusMethodNotAllowed},
 		{"/1234", "POST", strings.NewReader("https://practicum.yandex.ru/"), http.StatusMethodNotAllowed},
 		{"/12345678/1234", "POST", strings.NewReader("https://practicum.yandex.ru/"), http.StatusNotFound},
+		{"/api/shorten", "POST", strings.NewReader("{\"test\": \"https://practicum.yandex.ru\"}"), http.StatusBadRequest},
+		{"/api/shorten", "POST", strings.NewReader("<request><url>google.com</url></request>"), http.StatusBadRequest},
+		{"/api/shorten1", "POST", strings.NewReader("{\"url\": \"https://practicum.yandex.ru\"}"), http.StatusNotFound},
 	}
 	for _, v := range testTable {
 		resp := testRequest(t, ts, v.metod, v.url, v.body)

@@ -1,93 +1,78 @@
 package config
 
 import (
-	"errors"
-	"flag"
 	"os"
-	"strconv"
-	"strings"
+	"path/filepath"
+
+	"github.com/caarlos0/env"
+	"github.com/denmor86/go-url-shortener.git/internal/logger"
+	"github.com/spf13/pflag"
 )
 
-type NetAddress struct {
-	Host string
-	Port uint16
-}
-
 type Config struct {
-	ListenAddr  NetAddress
-	BaseURL     string
-	ShortURLLen int
-}
-
-func (a NetAddress) String() string {
-	return a.Host + ":" + strconv.Itoa(int(a.Port))
-}
-
-func (a *NetAddress) Set(s string) error {
-	hp := strings.Split(s, ":")
-	if len(hp) != 2 {
-		return errors.New("need address in a form host:port")
-	}
-	port, err := strconv.Atoi(hp[1])
-	if err != nil {
-		return err
-	}
-	a.Host = hp[0]
-	a.Port = uint16(port)
-	return nil
+	ListenAddr      string `env:"SERVER_ADDRESS"`
+	BaseURL         string `env:"BASE_URL"`
+	ShortURLLen     int    `env:"MAX_URL_LEN" envDefault:"8"`
+	LogLevel        string `env:"LOG_LEVEL" envDefault:"info"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
 const (
-	DefaultListenHost  = "localhost"
-	DefaultListenPort  = 8080
-	DefaultBaseURL     = "http://localhost:8080"
-	DefaultShortURLlen = 8
+	DefaultListenServer  = "localhost:8080"
+	DefaultBaseURL       = "http://" + DefaultListenServer
+	DefaultShortURLlen   = 8
+	DefaultLogLevel      = "info"
+	DefaultCacheFileName = "shortener_cache.txt"
 )
 
 func NewConfig() *Config {
 
-	var listenAddr NetAddress
-	flag.Var(&listenAddr, "a", "Server listen address in a form host:port.")
+	pflag.StringP("server", "a", DefaultListenServer, "Server listen address in a form host:port.")
+	pflag.StringP("base_url", "b", DefaultBaseURL, "Server base URL.")
+	pflag.IntP("url_len", "s", DefaultShortURLlen, "Short URL length.")
+	pflag.StringP("log_level", "l", DefaultLogLevel, "Log level.")
+	pflag.StringP("file_storage_path", "f", filepath.Join(os.TempDir(), DefaultCacheFileName), "Path to cache file.")
+	pflag.Parse()
 
-	var baseURL string
-	flag.StringVar(&baseURL, "b", DefaultBaseURL, "Server base URL.")
+	var config Config
+	if err := env.Parse(&config); err != nil {
+		logger.Error("Failed to parse enviroment var: ", err)
+	}
 
-	var shortURLLen int
-	flag.IntVar(&shortURLLen, "l", DefaultShortURLlen, "Short URL length.")
-
-	flag.Parse()
-
-	if listenAddrEnv := os.Getenv("SERVER_ADDRESS"); listenAddrEnv != "" {
-		if err := listenAddr.Set(listenAddrEnv); err != nil {
-			listenAddr = NetAddress{DefaultListenHost, DefaultListenPort}
+	if config.ListenAddr == "" {
+		if address, err := pflag.CommandLine.GetString("server"); err == nil {
+			config.ListenAddr = address
 		}
 	}
-
-	if baseURLEnv := os.Getenv("BASE_URL"); baseURLEnv != "" {
-		baseURL = baseURLEnv
+	if config.BaseURL == "" {
+		if baseURL, err := pflag.CommandLine.GetString("base_url"); err == nil {
+			config.BaseURL = baseURL
+		}
 	}
-
-	if listenAddr.Host == "" {
-		listenAddr = NetAddress{DefaultListenHost, DefaultListenPort}
+	if config.ShortURLLen == DefaultShortURLlen {
+		if urlLen, err := pflag.CommandLine.GetInt("url_len"); err == nil {
+			config.ShortURLLen = urlLen
+		}
 	}
-	if baseURL == "" {
-		baseURL = DefaultBaseURL
+	if config.LogLevel == DefaultLogLevel {
+		if logLevel, err := pflag.CommandLine.GetString("log_level"); err == nil {
+			config.LogLevel = logLevel
+		}
 	}
-	if shortURLLen > DefaultShortURLlen {
-		shortURLLen = DefaultShortURLlen
+	if config.FileStoragePath == "" {
+		if filepath, err := pflag.CommandLine.GetString("file_storage_path"); err == nil {
+			config.FileStoragePath = filepath
+		}
 	}
-
-	return &Config{
-		ListenAddr:  listenAddr,
-		BaseURL:     baseURL,
-		ShortURLLen: shortURLLen,
-	}
+	return &config
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		ListenAddr:  NetAddress{DefaultListenHost, DefaultListenPort},
-		BaseURL:     DefaultBaseURL,
-		ShortURLLen: DefaultShortURLlen,
+		ListenAddr:      DefaultListenServer,
+		BaseURL:         DefaultBaseURL,
+		ShortURLLen:     DefaultShortURLlen,
+		LogLevel:        DefaultLogLevel,
+		FileStoragePath: filepath.Join(os.TempDir(), DefaultCacheFileName),
 	}
 }
