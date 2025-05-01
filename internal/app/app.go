@@ -5,12 +5,12 @@ import (
 
 	"github.com/denmor86/go-url-shortener.git/internal/config"
 	"github.com/denmor86/go-url-shortener.git/internal/logger"
-	"github.com/denmor86/go-url-shortener.git/internal/network/handlers"
 	"github.com/denmor86/go-url-shortener.git/internal/network/router"
+	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 )
 
 type IStorage interface {
-	handlers.IBaseStorage
+	usecase.IBaseStorage
 	Initialize(string) error
 	Close() error
 }
