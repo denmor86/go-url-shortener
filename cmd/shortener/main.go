@@ -8,9 +8,11 @@ import (
 
 // функция main вызывается автоматически при запуске приложения
 func main() {
+	config := config.NewConfig()
+	storage := storage.NewStorage(config)
 	a := app.App{
-		Config:  *config.NewConfig(),
-		Storage: storage.NewFileStorage(),
+		Config:  config,
+		Storage: storage,
 	}
 	a.Run()
 }

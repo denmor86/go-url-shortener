@@ -35,7 +35,7 @@ func TestHandleRouter(t *testing.T) {
 	memstorage.Add("https://practicum.yandex.ru/", "12345678")
 	memstorage.Add("https://google.com", "iFBc_bhG")
 
-	ts := httptest.NewServer(HandleRouter(*config, memstorage))
+	ts := httptest.NewServer(HandleRouter(config, memstorage))
 	defer ts.Close()
 
 	var testTable = []struct {

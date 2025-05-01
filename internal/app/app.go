@@ -6,18 +6,12 @@ import (
 	"github.com/denmor86/go-url-shortener.git/internal/config"
 	"github.com/denmor86/go-url-shortener.git/internal/logger"
 	"github.com/denmor86/go-url-shortener.git/internal/network/router"
-	"github.com/denmor86/go-url-shortener.git/internal/usecase"
+	"github.com/denmor86/go-url-shortener.git/internal/storage"
 )
-
-type IStorage interface {
-	usecase.IBaseStorage
-	Initialize(string) error
-	Close() error
-}
 
 type App struct {
 	Config  config.Config
-	Storage IStorage
+	Storage storage.IStorage
 }
 
 func (a *App) Run() {
@@ -25,11 +19,6 @@ func (a *App) Run() {
 		logger.Panic(err)
 	}
 	defer logger.Sync()
-
-	if err := a.Storage.Initialize(a.Config.FileStoragePath); err != nil {
-		logger.Panic("Can't Initialize cache file: ", err)
-	}
-	defer a.Storage.Close()
 
 	logger.Info(
 		"Starting server:", a.Config.ListenAddr,

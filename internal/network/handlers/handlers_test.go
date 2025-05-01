@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
-	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +24,7 @@ func TestEncondeURLHandler(t *testing.T) {
 		baseURL     string
 		lenShortURL int
 		body        string
-		storage     usecase.IBaseStorage
+		storage     storage.IStorage
 		want        want
 	}{
 		{
@@ -91,7 +90,7 @@ func TestDecodeURLHandler(t *testing.T) {
 	tests := []struct {
 		name    string
 		request string
-		storage usecase.IBaseStorage
+		storage storage.IStorage
 		want    want
 	}{
 		{
@@ -168,7 +167,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 		baseURL     string
 		lenShortURL int
 		body        string
-		storage     usecase.IBaseStorage
+		storage     storage.IStorage
 		want        want
 	}{
 		{

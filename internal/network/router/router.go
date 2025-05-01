@@ -4,11 +4,11 @@ import (
 	"github.com/denmor86/go-url-shortener.git/internal/config"
 	"github.com/denmor86/go-url-shortener.git/internal/network/handlers"
 	"github.com/denmor86/go-url-shortener.git/internal/network/middleware"
-	"github.com/denmor86/go-url-shortener.git/internal/usecase"
+	"github.com/denmor86/go-url-shortener.git/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
 
-func HandleRouter(config config.Config, storage usecase.IBaseStorage) chi.Router {
+func HandleRouter(config config.Config, storage storage.IStorage) chi.Router {
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
 		r.Post("/", middleware.LogHandle(

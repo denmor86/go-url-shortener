@@ -27,7 +27,7 @@ const (
 	DefaultDatabaseDSN   = ""
 )
 
-func NewConfig() *Config {
+func NewConfig() Config {
 
 	pflag.StringP("server", "a", DefaultListenServer, "Server listen address in a form host:port.")
 	pflag.StringP("base_url", "b", DefaultBaseURL, "Server base URL.")
@@ -72,11 +72,11 @@ func NewConfig() *Config {
 			config.DatabaseDSN = dsn
 		}
 	}
-	return &config
+	return config
 }
 
-func DefaultConfig() *Config {
-	return &Config{
+func DefaultConfig() Config {
+	return Config{
 		ListenAddr:      DefaultListenServer,
 		BaseURL:         DefaultBaseURL,
 		ShortURLLen:     DefaultShortURLlen,

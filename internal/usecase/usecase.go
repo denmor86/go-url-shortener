@@ -8,12 +8,8 @@ import (
 	"strings"
 
 	"github.com/denmor86/go-url-shortener.git/internal/helpers"
+	"github.com/denmor86/go-url-shortener.git/internal/storage"
 )
-
-type IBaseStorage interface {
-	Add(string, string) error
-	Get(string) (string, error)
-}
 
 type Request struct {
 	URL string `json:"url"`
@@ -23,7 +19,7 @@ type Response struct {
 	Result string `json:"result"`
 }
 
-func EncondeURL(baseURL string, lenShortURL int, storage IBaseStorage, reader io.Reader) ([]byte, error) {
+func EncondeURL(baseURL string, lenShortURL int, storage storage.IStorage, reader io.Reader) ([]byte, error) {
 
 	data, err := io.ReadAll(reader)
 	if err != nil {
@@ -42,7 +38,7 @@ func EncondeURL(baseURL string, lenShortURL int, storage IBaseStorage, reader io
 	return []byte(helpers.MakeURL(baseURL, shortURL)), nil
 }
 
-func EncondeURLJson(baseURL string, lenShortURL int, storage IBaseStorage, reader io.Reader) ([]byte, error) {
+func EncondeURLJson(baseURL string, lenShortURL int, storage storage.IStorage, reader io.Reader) ([]byte, error) {
 
 	var buf bytes.Buffer
 	// читаем тело запроса
@@ -68,7 +64,7 @@ func EncondeURLJson(baseURL string, lenShortURL int, storage IBaseStorage, reade
 	return resp, nil
 }
 
-func DecodeURL(storage IBaseStorage, shortURL string) (string, error) {
+func DecodeURL(storage storage.IStorage, shortURL string) (string, error) {
 
 	if shortURL == "" {
 		return "", fmt.Errorf("URL is empty")
