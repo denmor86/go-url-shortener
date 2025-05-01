@@ -58,7 +58,7 @@ func TestEncondeURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(EncondeURLHandler(tt.baseURL, tt.lenShortURL, tt.storage))
+			h := http.HandlerFunc(EncondeURL(tt.baseURL, tt.lenShortURL, tt.storage))
 			h(w, request)
 
 			result := w.Result()
@@ -138,7 +138,7 @@ func TestDecodeURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, tt.request, nil)
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(DecodeURLHandler(tt.storage))
+			h := http.HandlerFunc(DecodeURL(tt.storage))
 			h(w, request)
 
 			result := w.Result()
@@ -227,7 +227,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(EncondeURLJsonHandler(tt.baseURL, tt.lenShortURL, tt.storage))
+			h := http.HandlerFunc(EncondeURLJson(tt.baseURL, tt.lenShortURL, tt.storage))
 			h(w, request)
 
 			result := w.Result()

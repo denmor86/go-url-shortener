@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/denmor86/go-url-shortener.git/internal/helpers"
-	"github.com/denmor86/go-url-shortener.git/internal/models"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -16,7 +15,15 @@ type IBaseStorage interface {
 	Get(string) (string, error)
 }
 
-func EncondeURLHandler(baseURL string, lenShortURL int, storage IBaseStorage) http.HandlerFunc {
+type Request struct {
+	URL string `json:"url"`
+}
+
+type Response struct {
+	Result string `json:"result"`
+}
+
+func EncondeURL(baseURL string, lenShortURL int, storage IBaseStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		data, err := io.ReadAll(r.Body)
@@ -41,7 +48,7 @@ func EncondeURLHandler(baseURL string, lenShortURL int, storage IBaseStorage) ht
 	}
 }
 
-func DecodeURLHandler(storage IBaseStorage) http.HandlerFunc {
+func DecodeURL(storage IBaseStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		var shortURL string
@@ -70,7 +77,7 @@ func DecodeURLHandler(storage IBaseStorage) http.HandlerFunc {
 	}
 }
 
-func EncondeURLJsonHandler(baseURL string, lenShortURL int, storage IBaseStorage) http.HandlerFunc {
+func EncondeURLJson(baseURL string, lenShortURL int, storage IBaseStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		var buf bytes.Buffer
@@ -80,7 +87,7 @@ func EncondeURLJsonHandler(baseURL string, lenShortURL int, storage IBaseStorage
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		var request models.Request
+		var request Request
 		if err = json.Unmarshal(buf.Bytes(), &request); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -96,7 +103,7 @@ func EncondeURLJsonHandler(baseURL string, lenShortURL int, storage IBaseStorage
 		shortURL := helpers.MakeShortURL(url, lenShortURL)
 		storage.Add(url, shortURL)
 
-		var responce models.Response
+		var responce Response
 		responce.Result = helpers.MakeURL(baseURL, shortURL)
 		resp, err := json.Marshal(responce)
 		if err != nil {
@@ -107,5 +114,12 @@ func EncondeURLJsonHandler(baseURL string, lenShortURL int, storage IBaseStorage
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		w.Write(resp)
+	}
+}
+
+func PingStorage(storage IBaseStorage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		http.Error(w, "Storage is disconnected", http.StatusInternalServerError)
 	}
 }

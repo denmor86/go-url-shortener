@@ -15,6 +15,7 @@ type Config struct {
 	ShortURLLen     int    `env:"MAX_URL_LEN" envDefault:"8"`
 	LogLevel        string `env:"LOG_LEVEL" envDefault:"info"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	DatabaseDSN     string `env:"DATABASE_DSN"`
 }
 
 const (
@@ -23,6 +24,7 @@ const (
 	DefaultShortURLlen   = 8
 	DefaultLogLevel      = "info"
 	DefaultCacheFileName = "shortener_cache.txt"
+	DefaultDatabaseDSN   = ""
 )
 
 func NewConfig() *Config {
@@ -32,6 +34,7 @@ func NewConfig() *Config {
 	pflag.IntP("url_len", "s", DefaultShortURLlen, "Short URL length.")
 	pflag.StringP("log_level", "l", DefaultLogLevel, "Log level.")
 	pflag.StringP("file_storage_path", "f", filepath.Join(os.TempDir(), DefaultCacheFileName), "Path to cache file.")
+	pflag.StringP("database_dsn", "d", DefaultDatabaseDSN, "Database DSN")
 	pflag.Parse()
 
 	var config Config
@@ -64,6 +67,11 @@ func NewConfig() *Config {
 			config.FileStoragePath = filepath
 		}
 	}
+	if config.DatabaseDSN == "" {
+		if dsn, err := pflag.CommandLine.GetString("database_dsn"); err == nil {
+			config.DatabaseDSN = dsn
+		}
+	}
 	return &config
 }
 
@@ -74,5 +82,6 @@ func DefaultConfig() *Config {
 		ShortURLLen:     DefaultShortURLlen,
 		LogLevel:        DefaultLogLevel,
 		FileStoragePath: filepath.Join(os.TempDir(), DefaultCacheFileName),
+		DatabaseDSN:     DefaultDatabaseDSN,
 	}
 }

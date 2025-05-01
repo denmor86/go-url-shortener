@@ -32,3 +32,7 @@ func (s *MemStorage) Get(shortURL string) (string, error) {
 	}
 	return "", fmt.Errorf("short url not found: %s", shortURL)
 }
+func (s *MemStorage) Size() int {
+
+	return len(s.Urls)
+}

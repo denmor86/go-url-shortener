@@ -12,12 +12,15 @@ func HandleRouter(config config.Config, storage handlers.IBaseStorage) chi.Route
 	r.Route("/", func(r chi.Router) {
 		r.Post("/", middleware.LogHandle(
 			middleware.GzipHandle(
-				handlers.EncondeURLHandler(config.BaseURL, config.ShortURLLen, storage)))) // POST /
+				handlers.EncondeURL(config.BaseURL, config.ShortURLLen, storage)))) // POST /
 		r.Post("/api/shorten", middleware.LogHandle(
-			middleware.GzipHandle(
-				handlers.EncondeURLJsonHandler(config.BaseURL, config.ShortURLLen, storage)))) // POST /api/shorten
+			middleware.GzipHandle(	
+				handlers.EncondeURLJson(config.BaseURL, config.ShortURLLen, storage)))) // POST /api/shorten
 		r.Route("/{id}", func(r chi.Router) {
-			r.Get("/", middleware.LogHandle(handlers.DecodeURLHandler(storage))) // GET /shortURL
+			r.Get("/", middleware.LogHandle(handlers.DecodeURL(storage))) // GET /shortURL
+		})
+		r.Route("/ping", func(r chi.Router) {
+			r.Get("/", middleware.LogHandle(handlers.PingStorage(storage))) // GET /shortURL
 		})
 	})
 	return r

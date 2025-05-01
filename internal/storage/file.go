@@ -17,7 +17,7 @@ type URLInfo struct {
 }
 
 type FileStorage struct {
-	Urls   map[string]string
+	Cache  MemStorage
 	file   *os.File
 	writer *bufio.Writer
 	sync.RWMutex
@@ -28,7 +28,7 @@ func (s *FileStorage) Close() error {
 }
 
 func NewFileStorage() *FileStorage {
-	return &FileStorage{Urls: make(map[string]string), file: nil, writer: nil}
+	return &FileStorage{Cache: *NewMemStorage(), file: nil, writer: nil}
 }
 
 func (s *FileStorage) Initialize(filepath string) error {
@@ -53,16 +53,16 @@ func (s *FileStorage) Initialize(filepath string) error {
 			logger.Warn("Invalid cache value has read:", value)
 			continue
 		}
-		s.Urls[info.ShortURL] = info.OriginalURL
+		s.Cache.Add(info.OriginalURL, info.ShortURL)
 	}
 	return nil
 }
 
 func (s *FileStorage) Add(originalURL string, shortURL string) error {
 	s.Lock()
-	s.Urls[shortURL] = originalURL
+	s.Cache.Add(originalURL, shortURL)
 
-	info := URLInfo{ID: uint(len(s.Urls)), OriginalURL: originalURL, ShortURL: shortURL}
+	info := URLInfo{ID: uint(s.Cache.Size()), OriginalURL: originalURL, ShortURL: shortURL}
 	data, err := json.Marshal(&info)
 	if err != nil {
 		logger.Warn("Can't marchal value:", err)
@@ -83,9 +83,9 @@ func (s *FileStorage) Add(originalURL string, shortURL string) error {
 
 func (s *FileStorage) Get(shortURL string) (string, error) {
 	s.Lock()
-	longURL, exist := s.Urls[shortURL]
+	longURL, err := s.Cache.Get(shortURL)
 	s.Unlock()
-	if exist {
+	if err == nil {
 		return longURL, nil
 	}
 	return "", fmt.Errorf("short url not found: %s", shortURL)
