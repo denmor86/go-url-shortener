@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
+	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +25,7 @@ func TestEncondeURLHandler(t *testing.T) {
 		baseURL     string
 		lenShortURL int
 		body        string
-		storage     IBaseStorage
+		storage     usecase.IBaseStorage
 		want        want
 	}{
 		{
@@ -90,7 +91,7 @@ func TestDecodeURLHandler(t *testing.T) {
 	tests := []struct {
 		name    string
 		request string
-		storage IBaseStorage
+		storage usecase.IBaseStorage
 		want    want
 	}{
 		{
@@ -110,7 +111,7 @@ func TestDecodeURLHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
-				URL:         "short url not found: BIwRkGiI\n",
+				URL:         "Error read from storage: short url not found: BIwRkGiI\n",
 			},
 		},
 		{
@@ -167,7 +168,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 		baseURL     string
 		lenShortURL int
 		body        string
-		storage     IBaseStorage
+		storage     usecase.IBaseStorage
 		want        want
 	}{
 		{
@@ -180,7 +181,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
-				bodyLen:     29,
+				bodyLen:     51,
 			},
 		},
 		{
@@ -193,7 +194,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
-				bodyLen:     13,
+				bodyLen:     31,
 			},
 		},
 		{
@@ -206,7 +207,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
-				bodyLen:     53,
+				bodyLen:     75,
 			},
 		},
 		{
