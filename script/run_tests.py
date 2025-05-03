@@ -23,6 +23,9 @@ DEFAULT_PORT = 8080
 # Файл кэша по-умолчанию
 DEFAULT_CACHE_FILE_PATH = f"{tempfile.gettempdir()}\cache.json"
 
+# Файл кэша по-умолчанию
+DEFAULT_DSN = "postgres://postgres:root@localhost:5432/postgres?sslmode=disable"
+
 
 def check_test_app_exist(test_bin_path):
     if not os.path.isfile(test_bin_path):
@@ -43,6 +46,8 @@ def main():
     parser.add_argument('--port', type=int, default=DEFAULT_PORT, help='Порт')
     parser.add_argument('--file_storage_path', type=str,
                         default=DEFAULT_CACHE_FILE_PATH, help='Путь к файлу кэша URLs')
+    parser.add_argument('--dsn', type=str,
+                        default=DEFAULT_DSN, help='DSN для подключения к Postgres')
     args = parser.parse_args()
 
     errors = False
@@ -57,8 +62,9 @@ def main():
             src_path = f"-source-path={args.src_path}"
             port = f"-server-port={args.port}"
             file_storage_path = f"-file-storage-path={args.file_storage_path}"
+            dsn = f"-database-dsn={args.dsn}"
             try:
-                process = subprocess.Popen([test_bin_path, test_verbose, current_test, bin_path, src_path, port, file_storage_path],
+                process = subprocess.Popen([test_bin_path, test_verbose, current_test, bin_path, src_path, port, file_storage_path, dsn],
                                            stdout=sys.stdout,
                                            stderr=sys.stderr,
                                            text=True)
