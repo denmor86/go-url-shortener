@@ -2,10 +2,12 @@ package usecase
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/denmor86/go-url-shortener.git/internal/helpers"
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
@@ -74,4 +76,8 @@ func DecodeURL(storage storage.IStorage, shortURL string) (string, error) {
 		return "", fmt.Errorf("%s: %w", "Error read from storage", err)
 	}
 	return url, nil
+}
+
+func PingDatabase(ctx context.Context, dsn string, timeout time.Duration) error {
+	return storage.PingPostrges(ctx, dsn, timeout)
 }

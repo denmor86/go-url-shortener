@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
 	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 	"github.com/go-chi/chi/v5"
+	"github.com/pkg/errors"
 )
 
 func EncondeURL(baseURL string, lenShortURL int, storage storage.IStorage) http.HandlerFunc {
@@ -13,7 +15,7 @@ func EncondeURL(baseURL string, lenShortURL int, storage storage.IStorage) http.
 
 		shortURL, err := usecase.EncondeURL(baseURL, lenShortURL, storage, r.Body)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -37,7 +39,7 @@ func DecodeURL(storage storage.IStorage) http.HandlerFunc {
 
 		url, err := usecase.DecodeURL(storage, shortURL)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -52,7 +54,7 @@ func EncondeURLJson(baseURL string, lenShortURL int, storage storage.IStorage) h
 
 		responce, err := usecase.EncondeURLJson(baseURL, lenShortURL, storage, r.Body)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -62,9 +64,12 @@ func EncondeURLJson(baseURL string, lenShortURL int, storage storage.IStorage) h
 	}
 }
 
-func PingStorage(storage storage.IStorage) http.HandlerFunc {
+func PingDatabase(dsn string, timeout time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		http.Error(w, "Storage is disconnected", http.StatusInternalServerError)
+		if err := usecase.PingDatabase(r.Context(), dsn, timeout); err != nil {
+			http.Error(w, errors.Cause(err).Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
 	}
 }

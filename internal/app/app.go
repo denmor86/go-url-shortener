@@ -21,7 +21,7 @@ func (a *App) Run() {
 	defer logger.Sync()
 
 	logger.Info(
-		"Starting server:", a.Config.ListenAddr,
+		"Starting server config:", a.Config,
 	)
 	err := http.ListenAndServe(a.Config.ListenAddr, router.HandleRouter(a.Config, a.Storage))
 	if err != nil {

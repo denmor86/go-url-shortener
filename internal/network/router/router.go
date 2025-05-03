@@ -21,7 +21,7 @@ func HandleRouter(config config.Config, storage storage.IStorage) chi.Router {
 			r.Get("/", middleware.LogHandle(handlers.DecodeURL(storage))) // GET /shortURL
 		})
 		r.Route("/ping", func(r chi.Router) {
-			r.Get("/", middleware.LogHandle(handlers.PingStorage(storage))) // GET /shortURL
+			r.Get("/", middleware.LogHandle(handlers.PingDatabase(config.DatabaseDSN, config.DatabaseTimeout))) // GET /shortURL
 		})
 	})
 	return r
