@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"sync"
 )
@@ -16,14 +17,14 @@ func NewMemStorage() *MemStorage {
 	return &s
 }
 
-func (s *MemStorage) Add(longURL string, shortURL string) error {
+func (s *MemStorage) Add(ctx context.Context, longURL string, shortURL string) error {
 	s.Lock()
 	s.Urls[shortURL] = longURL
 	s.Unlock()
 	return nil
 }
 
-func (s *MemStorage) Get(shortURL string) (string, error) {
+func (s *MemStorage) Get(ctx context.Context, shortURL string) (string, error) {
 	s.Lock()
 	longURL, exist := s.Urls[shortURL]
 	s.Unlock()
@@ -32,7 +33,7 @@ func (s *MemStorage) Get(shortURL string) (string, error) {
 	}
 	return "", fmt.Errorf("short url not found: %s", shortURL)
 }
-func (s *MemStorage) Size() int {
 
+func (s *MemStorage) Size() int {
 	return len(s.Urls)
 }

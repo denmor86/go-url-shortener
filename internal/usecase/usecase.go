@@ -21,11 +21,11 @@ type Response struct {
 	Result string `json:"result"`
 }
 
-func EncondeURL(baseURL string, lenShortURL int, storage storage.IStorage, reader io.Reader) ([]byte, error) {
+func EncondeURL(ctx context.Context, baseURL string, lenShortURL int, storage storage.IStorage, reader io.Reader) ([]byte, error) {
 
 	data, err := io.ReadAll(reader)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", "Error read from body", err)
+		return nil, fmt.Errorf("error read from body: %w", err)
 	}
 
 	url := string(data)
@@ -35,45 +35,45 @@ func EncondeURL(baseURL string, lenShortURL int, storage storage.IStorage, reade
 	}
 
 	shortURL := helpers.MakeShortURL(url, lenShortURL)
-	storage.Add(url, shortURL)
+	storage.Add(ctx, url, shortURL)
 
 	return []byte(helpers.MakeURL(baseURL, shortURL)), nil
 }
 
-func EncondeURLJson(baseURL string, lenShortURL int, storage storage.IStorage, reader io.Reader) ([]byte, error) {
+func EncondeURLJson(ctx context.Context, baseURL string, lenShortURL int, storage storage.IStorage, reader io.Reader) ([]byte, error) {
 
 	var buf bytes.Buffer
 	// читаем тело запроса
 	_, err := buf.ReadFrom(reader)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", "Error read from body", err)
+		return nil, fmt.Errorf("error read from body: %w", err)
 	}
 	var request Request
 	if err = json.Unmarshal(buf.Bytes(), &request); err != nil {
-		return nil, fmt.Errorf("%s: %w", "Error unmarshal body", err)
+		return nil, fmt.Errorf("error unmarshal body: %w", err)
 	}
 
-	shortURL, err := EncondeURL(baseURL, lenShortURL, storage, strings.NewReader(request.URL))
+	shortURL, err := EncondeURL(ctx, baseURL, lenShortURL, storage, strings.NewReader(request.URL))
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", "Error encode URL", err)
+		return nil, fmt.Errorf("error encode URL: %w", err)
 	}
 	var responce Response
 	responce.Result = string(shortURL)
 	resp, err := json.Marshal(responce)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", "Error marshaling", err)
+		return nil, fmt.Errorf("error marshaling: %w", err)
 	}
 	return resp, nil
 }
 
-func DecodeURL(storage storage.IStorage, shortURL string) (string, error) {
+func DecodeURL(ctx context.Context, storage storage.IStorage, shortURL string) (string, error) {
 
 	if shortURL == "" {
 		return "", fmt.Errorf("URL is empty")
 	}
-	url, err := storage.Get(shortURL)
+	url, err := storage.Get(ctx, shortURL)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", "Error read from storage", err)
+		return "", fmt.Errorf("error read from storage: %w", err)
 	}
 	return url, nil
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -79,8 +80,8 @@ func TestEncondeURLHandler(t *testing.T) {
 func TestDecodeURLHandler(t *testing.T) {
 
 	memstorage := storage.NewMemStorage()
-	memstorage.Add("https://practicum.yandex.ru/", "12345678")
-	memstorage.Add("https://google.com", "iFBc_bhG")
+	memstorage.Add(context.Background(), "https://practicum.yandex.ru/", "12345678")
+	memstorage.Add(context.Background(), "https://google.com", "iFBc_bhG")
 
 	type want struct {
 		contentType string

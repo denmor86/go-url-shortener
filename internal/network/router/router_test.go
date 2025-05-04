@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -32,8 +33,8 @@ func TestHandleRouter(t *testing.T) {
 	}
 	defer logger.Sync()
 	storage := storage.NewStorage(config)
-	storage.Add("https://practicum.yandex.ru/", "12345678")
-	storage.Add("https://google.com", "iFBc_bhG")
+	storage.Add(context.Background(), "https://practicum.yandex.ru/", "12345678")
+	storage.Add(context.Background(), "https://google.com", "iFBc_bhG")
 
 	ts := httptest.NewServer(HandleRouter(config, storage))
 	defer ts.Close()

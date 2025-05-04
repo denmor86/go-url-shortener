@@ -13,7 +13,7 @@ import (
 func EncondeURL(baseURL string, lenShortURL int, storage storage.IStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		shortURL, err := usecase.EncondeURL(baseURL, lenShortURL, storage, r.Body)
+		shortURL, err := usecase.EncondeURL(r.Context(), baseURL, lenShortURL, storage, r.Body)
 		if err != nil {
 			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 			return
@@ -37,7 +37,7 @@ func DecodeURL(storage storage.IStorage) http.HandlerFunc {
 			shortURL = r.URL.Path[len("/"):]
 		}
 
-		url, err := usecase.DecodeURL(storage, shortURL)
+		url, err := usecase.DecodeURL(r.Context(), storage, shortURL)
 		if err != nil {
 			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 			return
@@ -52,7 +52,7 @@ func DecodeURL(storage storage.IStorage) http.HandlerFunc {
 func EncondeURLJson(baseURL string, lenShortURL int, storage storage.IStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		responce, err := usecase.EncondeURLJson(baseURL, lenShortURL, storage, r.Body)
+		responce, err := usecase.EncondeURLJson(r.Context(), baseURL, lenShortURL, storage, r.Body)
 		if err != nil {
 			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 			return
