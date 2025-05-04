@@ -24,7 +24,7 @@ DEFAULT_PORT = 8080
 DEFAULT_CACHE_FILE_PATH = f"{tempfile.gettempdir()}\cache.json"
 
 # Файл кэша по-умолчанию
-DEFAULT_DSN = "postgres://postgres:root@localhost:5432/postgres?sslmode=disable"
+DEFAULT_DSN = "postgres://postgres:root@localhost:5432/shortener?sslmode=disable"
 
 
 def check_test_app_exist(test_bin_path):

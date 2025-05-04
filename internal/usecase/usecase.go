@@ -35,7 +35,10 @@ func EncondeURL(ctx context.Context, baseURL string, lenShortURL int, storage st
 	}
 
 	shortURL := helpers.MakeShortURL(url, lenShortURL)
-	storage.Add(ctx, url, shortURL)
+	err = storage.Add(ctx, url, shortURL)
+	if err != nil {
+		return nil, fmt.Errorf("error storage URL: %w", err)
+	}
 
 	return []byte(helpers.MakeURL(baseURL, shortURL)), nil
 }

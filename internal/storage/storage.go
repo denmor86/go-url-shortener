@@ -11,30 +11,26 @@ import (
 type IStorage interface {
 	Add(context.Context, string, string) error
 	Get(context.Context, string) (string, error)
+	Close() error
 }
 
 func NewStorage(cfg config.Config) IStorage {
 
 	if cfg.DatabaseDSN != "" {
-		if err := CheckDSN(cfg.DatabaseDSN); err != nil {
-			panic(fmt.Sprintf("invalid DSN: %s", errors.Cause(err).Error()))
-		}
 		storage, err := NewDatabaseStorage(cfg.DatabaseDSN)
 		if err != nil {
 			panic(fmt.Sprintf("can't create database storage: %s ", errors.Cause(err).Error()))
 		}
-		if err = storage.Initialize(cfg.DatabaseDSN); err != nil {
-			panic(fmt.Sprintf("can't Initialize database storage: %s ", errors.Cause(err).Error()))
+		if err = storage.Initialize(); err != nil {
+			panic(fmt.Sprintf("can't initialize database storage: %s ", errors.Cause(err).Error()))
 		}
-		defer storage.Close()
 		return storage
 	}
 	if cfg.FileStoragePath != "" {
 		storage := NewFileStorage()
 		if err := storage.Initialize(cfg.FileStoragePath); err != nil {
-			panic(fmt.Sprintf("can't Initialize cache file storage: %s ", errors.Cause(err).Error()))
+			panic(fmt.Sprintf("can't initialize cache file storage: %s ", errors.Cause(err).Error()))
 		}
-		defer storage.Close()
 		return storage
 	}
 

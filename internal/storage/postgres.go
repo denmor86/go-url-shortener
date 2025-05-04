@@ -11,7 +11,7 @@ import (
 
 type DatabaseStorage struct {
 	pool   *pgxpool.Pool
-	dbName string
+	config *pgx.ConnConfig
 	dbHOST string
 }
 
@@ -36,10 +36,10 @@ func NewDatabaseStorage(dsn string) (*DatabaseStorage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse database config: %w", err)
 	}
-	return &DatabaseStorage{pool: pool, dbName: cfg.ConnConfig.Database}, nil
+	return &DatabaseStorage{pool: pool, config: cfg.ConnConfig}, nil
 }
-func (s *DatabaseStorage) Initialize(dsn string) error {
-	if err := s.CreateDatabase(context.Background(), dsn); err != nil {
+func (s *DatabaseStorage) Initialize() error {
+	if err := s.CreateDatabase(context.Background()); err != nil {
 		return fmt.Errorf("error create database: %w", err)
 	}
 	if err := s.CreateTable(context.Background()); err != nil {
@@ -53,20 +53,27 @@ func (s *DatabaseStorage) Close() error {
 	return nil
 }
 
-func (s *DatabaseStorage) CreateDatabase(ctx context.Context, dsn string) error {
-	conn, err := pgx.Connect(ctx, s.dbHOST)
+func (s *DatabaseStorage) CreateDatabase(ctx context.Context) error {
+	conn, err := pgx.ConnectConfig(ctx, s.config)
 	if err != nil {
-		return fmt.Errorf("failed to connect database: %w", err)
+		// если не получилось соединиться с БД из строки подключения
+		// пробуем использовать дефолтную БД
+		cfg := s.config.Copy()
+		cfg.Database = `postgres`
+		conn, err = pgx.ConnectConfig(ctx, cfg)
+		if err != nil {
+			return fmt.Errorf("failed to connect database: %w", err)
+		}
 	}
 	defer conn.Close(ctx)
 
 	var exist bool
-	err = conn.QueryRow(ctx, CheckExistSQL, s.dbName).Scan(&exist)
+	err = conn.QueryRow(ctx, CheckExistSQL, s.config.Database).Scan(&exist)
 	if err != nil {
 		return fmt.Errorf("failed to check database exists: %w", err)
 	}
 	if !exist {
-		_, err = conn.Exec(ctx, fmt.Sprint(CreateDatabaseSQL, s.dbName))
+		_, err = conn.Exec(ctx, fmt.Sprintf(CreateDatabaseSQL, s.config.Database))
 		if err != nil {
 			return fmt.Errorf("failed to create database: %w", err)
 		}
@@ -103,11 +110,6 @@ func (s *DatabaseStorage) Get(ctx context.Context, shortURL string) (string, err
 		return "", fmt.Errorf("failed to get record: %w", err)
 	}
 	return baseURL, nil
-}
-
-func CheckDSN(dsn string) error {
-	_, err := pgxpool.ParseConfig(dsn)
-	return err
 }
 
 func PingPostrges(ctx context.Context, dsn string, timeout time.Duration) error {

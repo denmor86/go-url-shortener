@@ -17,6 +17,10 @@ func NewMemStorage() *MemStorage {
 	return &s
 }
 
+func (s *MemStorage) Close() error {
+	return nil
+}
+
 func (s *MemStorage) Add(ctx context.Context, longURL string, shortURL string) error {
 	s.Lock()
 	s.Urls[shortURL] = longURL
