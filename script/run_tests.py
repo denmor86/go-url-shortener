@@ -67,6 +67,7 @@ def main():
                 process = subprocess.Popen([test_bin_path, test_verbose, current_test, bin_path, src_path, port, file_storage_path, dsn],
                                            stdout=sys.stdout,
                                            stderr=sys.stderr,
+                                           cwd=args.src_path,
                                            text=True)
                 print(
                     f"Тест запущен со следующими параметрами: {process.args}")
