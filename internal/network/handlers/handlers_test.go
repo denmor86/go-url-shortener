@@ -111,7 +111,7 @@ func TestDecodeURLHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
-				URL:         "Error read from storage: short url not found: BIwRkGiI\n",
+				URL:         "error read from storage: short url not found: BIwRkGiI\n",
 			},
 		},
 		{
