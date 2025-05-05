@@ -12,14 +12,21 @@ func EncondeURL(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		shortURL, err := u.EncondeURL(r.Context(), r.Body)
-		if err != nil {
-			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
+
+		w.Header().Set("content-type", "text/plain")
+
+		if err == nil {
+			w.WriteHeader(http.StatusCreated)
+			w.Write(shortURL)
+			return
+		}
+		if errors.Is(err, usecase.ErrUniqueViolation) {
+			w.WriteHeader(http.StatusConflict)
+			w.Write(shortURL)
 			return
 		}
 
-		w.Header().Set("content-type", "text/plain")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(shortURL)
+		http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 	}
 }
 
@@ -51,14 +58,21 @@ func EncondeURLJson(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		responce, err := u.EncondeURLJson(r.Context(), r.Body)
-		if err != nil {
-			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
+
+		w.Header().Set("Content-Type", "application/json")
+
+		if err == nil {
+			w.WriteHeader(http.StatusCreated)
+			w.Write(responce)
+			return
+		}
+		if errors.Is(err, usecase.ErrUniqueViolation) {
+			w.WriteHeader(http.StatusConflict)
+			w.Write(responce)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(responce)
+		http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 	}
 }
 

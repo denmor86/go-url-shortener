@@ -2,11 +2,21 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+type UniqueViolationError struct {
+	Message  string
+	ShortURL string
+}
+
+func (e *UniqueViolationError) Error() string {
+	return e.Message
+}
 
 type DatabaseStorage struct {
 	Pool   *pgxpool.Pool
@@ -14,15 +24,19 @@ type DatabaseStorage struct {
 }
 
 const (
-	CheckExistSQL     = `SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname =$1)`
-	CreateDatabaseSQL = `CREATE DATABASE %s`
-	CreateTableSQL    = `CREATE TABLE IF NOT EXISTS URLs (
+	CheckExist     = `SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname =$1)`
+	CreateDatabase = `CREATE DATABASE %s`
+	CreateTable    = `CREATE TABLE IF NOT EXISTS URLs (
 	                       id SERIAL PRIMARY KEY,
-	                       short_url TEXT NOT NUll,
-	                       base_url TEXT NOT NUll
+	                       short_url TEXT  NOT NUll,
+	                       original_url TEXT UNIQUE NOT NUll
 						);`
-	InsertRecordSQL = `INSERT INTO URLs (short_url, base_url) VALUES ($1, $2);`
-	GetRecordSQL    = `SELECT base_url FROM URLs WHERE short_url =$1;`
+	InsertRecord = `INSERT INTO URLs (short_url, original_url) 
+						VALUES ($1, $2) 
+						ON CONFLICT (original_url) DO NOTHING
+						RETURNING short_url;`
+	GetOriginalURL = `SELECT original_url FROM URLs WHERE short_url =$1;`
+	GetShortURL    = `SELECT short_url FROM URLs WHERE original_url =$1;`
 )
 
 func NewDatabaseStorage(dsn string) (*DatabaseStorage, error) {
@@ -67,12 +81,12 @@ func (s *DatabaseStorage) CreateDatabase(ctx context.Context) error {
 	defer conn.Close(ctx)
 
 	var exist bool
-	err = conn.QueryRow(ctx, CheckExistSQL, s.Config.Database).Scan(&exist)
+	err = conn.QueryRow(ctx, CheckExist, s.Config.Database).Scan(&exist)
 	if err != nil {
 		return fmt.Errorf("failed to check database exists: %w", err)
 	}
 	if !exist {
-		_, err = conn.Exec(ctx, fmt.Sprintf(CreateDatabaseSQL, s.Config.Database))
+		_, err = conn.Exec(ctx, fmt.Sprintf(CreateDatabase, s.Config.Database))
 		if err != nil {
 			return fmt.Errorf("failed to create database: %w", err)
 		}
@@ -81,7 +95,7 @@ func (s *DatabaseStorage) CreateDatabase(ctx context.Context) error {
 }
 
 func (s *DatabaseStorage) CreateTable(ctx context.Context) error {
-	_, err := s.Pool.Exec(ctx, CreateTableSQL)
+	_, err := s.Pool.Exec(ctx, CreateTable)
 	if err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
@@ -90,12 +104,22 @@ func (s *DatabaseStorage) CreateTable(ctx context.Context) error {
 
 func (s *DatabaseStorage) Add(ctx context.Context, originalURL string, shortURL string) error {
 
-	_, err := s.Pool.Exec(ctx, InsertRecordSQL, shortURL, originalURL)
-	if err != nil {
+	var prevShortURL string
+	err := s.Pool.QueryRow(ctx, InsertRecord, shortURL, originalURL).Scan(&prevShortURL)
+	// добавили в базу, совпадений нет
+	if err == nil {
+		return nil
+	}
+	// ошибка добавления строки
+	if !errors.Is(err, pgx.ErrNoRows) {
 		return fmt.Errorf("failed to add record: %w", err)
 	}
-
-	return nil
+	// есть совпадение оригинального адреса
+	err = s.Pool.QueryRow(ctx, GetShortURL, originalURL).Scan(&prevShortURL)
+	if err != nil {
+		return fmt.Errorf("failed to get record: %w", err)
+	}
+	return &UniqueViolationError{Message: "URL already exists", ShortURL: prevShortURL}
 }
 
 func (s *DatabaseStorage) AddMultiple(ctx context.Context, items []TableItem) error {
@@ -109,7 +133,7 @@ func (s *DatabaseStorage) AddMultiple(ctx context.Context, items []TableItem) er
 	}()
 
 	for _, url := range items {
-		_, err := s.Pool.Exec(ctx, InsertRecordSQL, url.ShortURL, url.OriginalURL)
+		_, err := s.Pool.Exec(ctx, InsertRecord, url.ShortURL, url.OriginalURL)
 		if err != nil {
 			return err
 		}
@@ -121,7 +145,7 @@ func (s *DatabaseStorage) AddMultiple(ctx context.Context, items []TableItem) er
 func (s *DatabaseStorage) Get(ctx context.Context, shortURL string) (string, error) {
 
 	var originalURL string
-	err := s.Pool.QueryRow(ctx, GetRecordSQL, shortURL).Scan(&originalURL)
+	err := s.Pool.QueryRow(ctx, GetOriginalURL, shortURL).Scan(&originalURL)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return "", fmt.Errorf("short url not found: %s", shortURL)

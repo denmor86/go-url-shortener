@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -36,6 +37,8 @@ type ResponseItem struct {
 	URL string `json:"short_url"`
 }
 
+var ErrUniqueViolation = errors.New("URL already exist")
+
 func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader) ([]byte, error) {
 
 	data, err := io.ReadAll(reader)
@@ -51,11 +54,16 @@ func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader) ([]byte, err
 
 	shortURL := helpers.MakeShortURL(url, u.Config.ShortURLLen)
 	err = u.Storage.Add(ctx, url, shortURL)
-	if err != nil {
-		return nil, fmt.Errorf("error storage URL: %w", err)
+	// нет ошибок
+	if err == nil {
+		return []byte(helpers.MakeURL(u.Config.BaseURL, shortURL)), nil
 	}
-
-	return []byte(helpers.MakeURL(u.Config.BaseURL, shortURL)), nil
+	var storageError *storage.UniqueViolationError
+	// ошибка наличия не уникального URL
+	if errors.As(err, &storageError) {
+		return []byte(helpers.MakeURL(u.Config.BaseURL, storageError.ShortURL)), ErrUniqueViolation
+	}
+	return nil, fmt.Errorf("error storage URL: %w", err)
 }
 
 func (u *Usecase) EncondeURLJson(ctx context.Context, reader io.Reader) ([]byte, error) {
@@ -72,16 +80,26 @@ func (u *Usecase) EncondeURLJson(ctx context.Context, reader io.Reader) ([]byte,
 	}
 
 	shortURL, err := u.EncondeURL(ctx, strings.NewReader(request.URL))
-	if err != nil {
-		return nil, fmt.Errorf("error encode URL: %w", err)
-	}
 	var responce Response
-	responce.Result = string(shortURL)
-	resp, err := json.Marshal(responce)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling: %w", err)
+	// нет ошибок
+	if err == nil {
+		responce.Result = string(shortURL)
+		resp, err := json.Marshal(responce)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling: %w", err)
+		}
+		return resp, nil
 	}
-	return resp, nil
+	// ошибка наличия не уникального URL
+	if errors.Is(err, ErrUniqueViolation) {
+		responce.Result = string(shortURL)
+		resp, err := json.Marshal(responce)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling: %w", err)
+		}
+		return resp, ErrUniqueViolation
+	}
+	return nil, fmt.Errorf("error encode URL: %w", err)
 }
 
 func (u *Usecase) EncondeURLJsonBatch(ctx context.Context, reader io.Reader) ([]byte, error) {
