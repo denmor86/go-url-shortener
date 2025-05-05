@@ -11,6 +11,7 @@ import (
 	"github.com/denmor86/go-url-shortener.git/internal/config"
 	"github.com/denmor86/go-url-shortener.git/internal/logger"
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
+	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,7 +37,12 @@ func TestHandleRouter(t *testing.T) {
 	storage.Add(context.Background(), "https://practicum.yandex.ru/", "12345678")
 	storage.Add(context.Background(), "https://google.com", "iFBc_bhG")
 
-	ts := httptest.NewServer(HandleRouter(config, storage))
+	usecase := &usecase.Usecase{
+		Config:  config,
+		Storage: storage,
+	}
+
+	ts := httptest.NewServer(HandleRouter(usecase))
 	defer ts.Close()
 
 	var testTable = []struct {
@@ -61,7 +67,7 @@ func TestHandleRouter(t *testing.T) {
 		{"/api/shorten", "POST", strings.NewReader("<request><url>google.com</url></request>"), http.StatusBadRequest},
 		{"/api/shorten1", "POST", strings.NewReader("{\"url\": \"https://practicum.yandex.ru\"}"), http.StatusNotFound},
 
-		{"/ping", "GET", nil, http.StatusInternalServerError},
+		{"/ping", "GET", nil, http.StatusOK},
 	}
 	for _, v := range testTable {
 		resp := testRequest(t, ts, v.metod, v.url, v.body)

@@ -3,16 +3,14 @@ package storage
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type DatabaseStorage struct {
-	pool   *pgxpool.Pool
-	config *pgx.ConnConfig
-	dbHOST string
+	Pool   *pgxpool.Pool
+	Config *pgx.ConnConfig
 }
 
 const (
@@ -36,7 +34,7 @@ func NewDatabaseStorage(dsn string) (*DatabaseStorage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse database config: %w", err)
 	}
-	return &DatabaseStorage{pool: pool, config: cfg.ConnConfig}, nil
+	return &DatabaseStorage{Pool: pool, Config: cfg.ConnConfig}, nil
 }
 func (s *DatabaseStorage) Initialize() error {
 	if err := s.CreateDatabase(context.Background()); err != nil {
@@ -49,16 +47,16 @@ func (s *DatabaseStorage) Initialize() error {
 }
 
 func (s *DatabaseStorage) Close() error {
-	s.pool.Close()
+	s.Pool.Close()
 	return nil
 }
 
 func (s *DatabaseStorage) CreateDatabase(ctx context.Context) error {
-	conn, err := pgx.ConnectConfig(ctx, s.config)
+	conn, err := pgx.ConnectConfig(ctx, s.Config)
 	if err != nil {
 		// если не получилось соединиться с БД из строки подключения
 		// пробуем использовать дефолтную БД
-		cfg := s.config.Copy()
+		cfg := s.Config.Copy()
 		cfg.Database = `postgres`
 		conn, err = pgx.ConnectConfig(ctx, cfg)
 		if err != nil {
@@ -68,12 +66,12 @@ func (s *DatabaseStorage) CreateDatabase(ctx context.Context) error {
 	defer conn.Close(ctx)
 
 	var exist bool
-	err = conn.QueryRow(ctx, CheckExistSQL, s.config.Database).Scan(&exist)
+	err = conn.QueryRow(ctx, CheckExistSQL, s.Config.Database).Scan(&exist)
 	if err != nil {
 		return fmt.Errorf("failed to check database exists: %w", err)
 	}
 	if !exist {
-		_, err = conn.Exec(ctx, fmt.Sprintf(CreateDatabaseSQL, s.config.Database))
+		_, err = conn.Exec(ctx, fmt.Sprintf(CreateDatabaseSQL, s.Config.Database))
 		if err != nil {
 			return fmt.Errorf("failed to create database: %w", err)
 		}
@@ -82,7 +80,7 @@ func (s *DatabaseStorage) CreateDatabase(ctx context.Context) error {
 }
 
 func (s *DatabaseStorage) CreateTable(ctx context.Context) error {
-	_, err := s.pool.Exec(ctx, CreateTableSQL)
+	_, err := s.Pool.Exec(ctx, CreateTableSQL)
 	if err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
@@ -91,7 +89,7 @@ func (s *DatabaseStorage) CreateTable(ctx context.Context) error {
 
 func (s *DatabaseStorage) Add(ctx context.Context, longURL string, shortURL string) error {
 
-	_, err := s.pool.Exec(ctx, InsertRecordSQL, shortURL, longURL)
+	_, err := s.Pool.Exec(ctx, InsertRecordSQL, shortURL, longURL)
 	if err != nil {
 		return fmt.Errorf("failed to add record: %w", err)
 	}
@@ -102,7 +100,7 @@ func (s *DatabaseStorage) Add(ctx context.Context, longURL string, shortURL stri
 func (s *DatabaseStorage) Get(ctx context.Context, shortURL string) (string, error) {
 
 	var baseURL string
-	err := s.pool.QueryRow(ctx, GetRecordSQL, shortURL).Scan(&baseURL)
+	err := s.Pool.QueryRow(ctx, GetRecordSQL, shortURL).Scan(&baseURL)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return "", fmt.Errorf("short url not found: %s", shortURL)
@@ -112,15 +110,6 @@ func (s *DatabaseStorage) Get(ctx context.Context, shortURL string) (string, err
 	return baseURL, nil
 }
 
-func PingPostrges(ctx context.Context, dsn string, timeout time.Duration) error {
-	pingCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	pool, err := pgxpool.New(pingCtx, dsn)
-	if err != nil {
-		return fmt.Errorf("failed to create connection pool: %w", err)
-	}
-	defer pool.Close()
-
-	return pool.Ping(pingCtx)
+func (s *DatabaseStorage) Ping(ctx context.Context) error {
+	return s.Pool.Ping(ctx)
 }

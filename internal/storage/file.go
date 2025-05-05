@@ -91,3 +91,9 @@ func (s *FileStorage) Get(ctx context.Context, shortURL string) (string, error) 
 	}
 	return "", fmt.Errorf("short url not found: %s", shortURL)
 }
+func (s *FileStorage) Ping(ctx context.Context) error {
+	if s.File != nil {
+		return nil
+	}
+	return fmt.Errorf("file not open")
+}

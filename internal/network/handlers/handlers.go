@@ -2,18 +2,16 @@ package handlers
 
 import (
 	"net/http"
-	"time"
 
-	"github.com/denmor86/go-url-shortener.git/internal/storage"
 	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
 )
 
-func EncondeURL(baseURL string, lenShortURL int, storage storage.IStorage) http.HandlerFunc {
+func EncondeURL(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		shortURL, err := usecase.EncondeURL(r.Context(), baseURL, lenShortURL, storage, r.Body)
+		shortURL, err := u.EncondeURL(r.Context(), r.Body)
 		if err != nil {
 			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 			return
@@ -25,7 +23,7 @@ func EncondeURL(baseURL string, lenShortURL int, storage storage.IStorage) http.
 	}
 }
 
-func DecodeURL(storage storage.IStorage) http.HandlerFunc {
+func DecodeURL(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		var shortURL string
@@ -37,7 +35,7 @@ func DecodeURL(storage storage.IStorage) http.HandlerFunc {
 			shortURL = r.URL.Path[len("/"):]
 		}
 
-		url, err := usecase.DecodeURL(r.Context(), storage, shortURL)
+		url, err := u.DecodeURL(r.Context(), shortURL)
 		if err != nil {
 			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 			return
@@ -49,10 +47,10 @@ func DecodeURL(storage storage.IStorage) http.HandlerFunc {
 	}
 }
 
-func EncondeURLJson(baseURL string, lenShortURL int, storage storage.IStorage) http.HandlerFunc {
+func EncondeURLJson(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		responce, err := usecase.EncondeURLJson(r.Context(), baseURL, lenShortURL, storage, r.Body)
+		responce, err := u.EncondeURLJson(r.Context(), r.Body)
 		if err != nil {
 			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 			return
@@ -64,9 +62,9 @@ func EncondeURLJson(baseURL string, lenShortURL int, storage storage.IStorage) h
 	}
 }
 
-func PingDatabase(dsn string, timeout time.Duration) http.HandlerFunc {
+func PingStorage(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := usecase.PingDatabase(r.Context(), dsn, timeout); err != nil {
+		if err := u.PingStorage(r.Context()); err != nil {
 			http.Error(w, errors.Cause(err).Error(), http.StatusInternalServerError)
 			return
 		}

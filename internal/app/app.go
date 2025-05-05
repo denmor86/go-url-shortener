@@ -13,6 +13,7 @@ import (
 	"github.com/denmor86/go-url-shortener.git/internal/logger"
 	"github.com/denmor86/go-url-shortener.git/internal/network/router"
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
+	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 	"github.com/pkg/errors"
 )
 
@@ -29,9 +30,15 @@ func (a *App) Run() {
 	logger.Info(
 		"Starting server config:", a.Config,
 	)
+
+	usecase := &usecase.Usecase{
+		Config:  a.Config,
+		Storage: a.Storage,
+	}
+
 	server := &http.Server{
 		Addr:    a.Config.ListenAddr,
-		Handler: router.HandleRouter(a.Config, a.Storage),
+		Handler: router.HandleRouter(usecase),
 	}
 
 	stop := make(chan os.Signal, 1)

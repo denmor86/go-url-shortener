@@ -8,7 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/denmor86/go-url-shortener.git/internal/config"
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
+	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -59,7 +61,8 @@ func TestEncondeURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(EncondeURL(tt.baseURL, tt.lenShortURL, tt.storage))
+			u := &usecase.Usecase{Storage: tt.storage, Config: config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
+			h := http.HandlerFunc(EncondeURL(u))
 			h(w, request)
 
 			result := w.Result()
@@ -139,7 +142,8 @@ func TestDecodeURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, tt.request, nil)
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(DecodeURL(tt.storage))
+			u := &usecase.Usecase{Storage: tt.storage}
+			h := http.HandlerFunc(DecodeURL(u))
 			h(w, request)
 
 			result := w.Result()
@@ -228,7 +232,8 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(EncondeURLJson(tt.baseURL, tt.lenShortURL, tt.storage))
+			u := &usecase.Usecase{Storage: tt.storage, Config: config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
+			h := http.HandlerFunc(EncondeURLJson(u))
 			h(w, request)
 
 			result := w.Result()

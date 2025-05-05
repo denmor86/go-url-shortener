@@ -41,3 +41,6 @@ func (s *MemStorage) Get(ctx context.Context, shortURL string) (string, error) {
 func (s *MemStorage) Size() int {
 	return len(s.Urls)
 }
+func (s *MemStorage) Ping(ctx context.Context) error {
+	return nil
+}
