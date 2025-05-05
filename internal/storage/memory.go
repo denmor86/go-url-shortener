@@ -28,6 +28,15 @@ func (s *MemStorage) Add(ctx context.Context, longURL string, shortURL string) e
 	return nil
 }
 
+func (s *MemStorage) AddMultiple(ctx context.Context, items []TableItem) error {
+	for _, url := range items {
+		if err := s.Add(ctx, url.OriginalURL, url.ShortURL); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *MemStorage) Get(ctx context.Context, shortURL string) (string, error) {
 	s.Lock()
 	longURL, exist := s.Urls[shortURL]

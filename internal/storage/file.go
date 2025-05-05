@@ -81,7 +81,14 @@ func (s *FileStorage) Add(ctx context.Context, originalURL string, shortURL stri
 	s.Unlock()
 	return nil
 }
-
+func (s *FileStorage) AddMultiple(ctx context.Context, items []TableItem) error {
+	for _, url := range items {
+		if err := s.Add(ctx, url.OriginalURL, url.ShortURL); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func (s *FileStorage) Get(ctx context.Context, shortURL string) (string, error) {
 	s.Lock()
 	longURL, err := s.Cache.Get(ctx, shortURL)

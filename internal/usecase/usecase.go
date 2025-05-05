@@ -26,6 +26,16 @@ type Response struct {
 	Result string `json:"result"`
 }
 
+type RequestItem struct {
+	ID  string `json:"correlation_id"`
+	URL string `json:"original_url"`
+}
+
+type ResponseItem struct {
+	ID  string `json:"correlation_id"`
+	URL string `json:"short_url"`
+}
+
 func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader) ([]byte, error) {
 
 	data, err := io.ReadAll(reader)
@@ -68,6 +78,45 @@ func (u *Usecase) EncondeURLJson(ctx context.Context, reader io.Reader) ([]byte,
 	var responce Response
 	responce.Result = string(shortURL)
 	resp, err := json.Marshal(responce)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling: %w", err)
+	}
+	return resp, nil
+}
+
+func (u *Usecase) EncondeURLJsonBatch(ctx context.Context, reader io.Reader) ([]byte, error) {
+
+	var buf bytes.Buffer
+	// читаем тело запроса
+	_, err := buf.ReadFrom(reader)
+	if err != nil {
+		return nil, fmt.Errorf("error read from body: %w", err)
+	}
+	var requestItems []RequestItem
+	if err = json.Unmarshal(buf.Bytes(), &requestItems); err != nil {
+		return nil, fmt.Errorf("error unmarshal body: %w", err)
+	}
+
+	if len(requestItems) == 0 {
+		return nil, fmt.Errorf("empty request: %w", err)
+	}
+
+	items := make([]storage.TableItem, 0, len(requestItems))
+	responseItems := make([]ResponseItem, 0, len(requestItems))
+	for _, item := range requestItems {
+		if item.ID == "" || item.URL == "" {
+			return nil, fmt.Errorf("invalid request item: (ID: %s, URL: %s", item.ID, item.URL)
+		}
+		shortURL := helpers.MakeShortURL(item.URL, u.Config.ShortURLLen)
+		items = append(items, storage.TableItem{ShortURL: shortURL, OriginalURL: item.URL})
+		responseItems = append(responseItems, ResponseItem{ID: item.ID, URL: helpers.MakeURL(u.Config.BaseURL, shortURL)})
+	}
+
+	if err := u.Storage.AddMultiple(ctx, items); err != nil {
+		return nil, fmt.Errorf("error storage urls: %w", err)
+	}
+
+	resp, err := json.Marshal(responseItems)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling: %w", err)
 	}

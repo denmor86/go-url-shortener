@@ -8,8 +8,14 @@ import (
 	"github.com/pkg/errors"
 )
 
+type TableItem struct {
+	OriginalURL string
+	ShortURL    string
+}
+
 type IStorage interface {
 	Add(context.Context, string, string) error
+	AddMultiple(context.Context, []TableItem) error
 	Get(context.Context, string) (string, error)
 	Ping(ctx context.Context) error
 	Close() error

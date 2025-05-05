@@ -16,6 +16,9 @@ func HandleRouter(u *usecase.Usecase) chi.Router {
 		r.Post("/api/shorten", middleware.LogHandle(
 			middleware.GzipHandle(
 				handlers.EncondeURLJson(u)))) // POST /api/shorten
+		r.Post("/api/shorten/batch", middleware.LogHandle(
+			middleware.GzipHandle(
+				handlers.EncondeURLJsonBatch(u)))) // POST /api/shorten/batch
 		r.Route("/{id}", func(r chi.Router) {
 			r.Get("/", middleware.LogHandle(handlers.DecodeURL(u))) // GET /shortURL
 		})

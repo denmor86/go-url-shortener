@@ -36,6 +36,7 @@ func NewDatabaseStorage(dsn string) (*DatabaseStorage, error) {
 	}
 	return &DatabaseStorage{Pool: pool, Config: cfg.ConnConfig}, nil
 }
+
 func (s *DatabaseStorage) Initialize() error {
 	if err := s.CreateDatabase(context.Background()); err != nil {
 		return fmt.Errorf("error create database: %w", err)
@@ -87,9 +88,9 @@ func (s *DatabaseStorage) CreateTable(ctx context.Context) error {
 	return nil
 }
 
-func (s *DatabaseStorage) Add(ctx context.Context, longURL string, shortURL string) error {
+func (s *DatabaseStorage) Add(ctx context.Context, originalURL string, shortURL string) error {
 
-	_, err := s.Pool.Exec(ctx, InsertRecordSQL, shortURL, longURL)
+	_, err := s.Pool.Exec(ctx, InsertRecordSQL, shortURL, originalURL)
 	if err != nil {
 		return fmt.Errorf("failed to add record: %w", err)
 	}
@@ -97,17 +98,37 @@ func (s *DatabaseStorage) Add(ctx context.Context, longURL string, shortURL stri
 	return nil
 }
 
+func (s *DatabaseStorage) AddMultiple(ctx context.Context, items []TableItem) error {
+	tx, err := s.Pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = tx.Rollback(ctx)
+	}()
+
+	for _, url := range items {
+		_, err := s.Pool.Exec(ctx, InsertRecordSQL, url.ShortURL, url.OriginalURL)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
+}
+
 func (s *DatabaseStorage) Get(ctx context.Context, shortURL string) (string, error) {
 
-	var baseURL string
-	err := s.Pool.QueryRow(ctx, GetRecordSQL, shortURL).Scan(&baseURL)
+	var originalURL string
+	err := s.Pool.QueryRow(ctx, GetRecordSQL, shortURL).Scan(&originalURL)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return "", fmt.Errorf("short url not found: %s", shortURL)
 		}
 		return "", fmt.Errorf("failed to get record: %w", err)
 	}
-	return baseURL, nil
+	return originalURL, nil
 }
 
 func (s *DatabaseStorage) Ping(ctx context.Context) error {
