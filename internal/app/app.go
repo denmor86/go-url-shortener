@@ -58,5 +58,4 @@ func (a *App) Run() {
 		logger.Error("error shutdown server", err.Error())
 	}
 	logger.Info("Server stopped")
-	os.Exit(0)
 }
