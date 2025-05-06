@@ -1,13 +1,16 @@
 package handlers
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/denmor86/go-url-shortener.git/internal/config"
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
+	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +27,7 @@ func TestEncondeURLHandler(t *testing.T) {
 		baseURL     string
 		lenShortURL int
 		body        string
-		storage     IBaseStorage
+		storage     storage.IStorage
 		want        want
 	}{
 		{
@@ -58,7 +61,8 @@ func TestEncondeURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(EncondeURLHandler(tt.baseURL, tt.lenShortURL, tt.storage))
+			u := &usecase.Usecase{Storage: tt.storage, Config: config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
+			h := http.HandlerFunc(EncondeURL(u))
 			h(w, request)
 
 			result := w.Result()
@@ -79,8 +83,8 @@ func TestEncondeURLHandler(t *testing.T) {
 func TestDecodeURLHandler(t *testing.T) {
 
 	memstorage := storage.NewMemStorage()
-	memstorage.Add("https://practicum.yandex.ru/", "12345678")
-	memstorage.Add("https://google.com", "iFBc_bhG")
+	memstorage.Add(context.Background(), "https://practicum.yandex.ru/", "12345678")
+	memstorage.Add(context.Background(), "https://google.com", "iFBc_bhG")
 
 	type want struct {
 		contentType string
@@ -90,7 +94,7 @@ func TestDecodeURLHandler(t *testing.T) {
 	tests := []struct {
 		name    string
 		request string
-		storage IBaseStorage
+		storage storage.IStorage
 		want    want
 	}{
 		{
@@ -110,7 +114,7 @@ func TestDecodeURLHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
-				URL:         "short url not found: BIwRkGiI\n",
+				URL:         "error read from storage: short url not found: BIwRkGiI\n",
 			},
 		},
 		{
@@ -138,7 +142,8 @@ func TestDecodeURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, tt.request, nil)
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(DecodeURLHandler(tt.storage))
+			u := &usecase.Usecase{Storage: tt.storage}
+			h := http.HandlerFunc(DecodeURL(u))
 			h(w, request)
 
 			result := w.Result()
@@ -167,7 +172,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 		baseURL     string
 		lenShortURL int
 		body        string
-		storage     IBaseStorage
+		storage     storage.IStorage
 		want        want
 	}{
 		{
@@ -180,7 +185,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
-				bodyLen:     29,
+				bodyLen:     51,
 			},
 		},
 		{
@@ -193,7 +198,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
-				bodyLen:     13,
+				bodyLen:     31,
 			},
 		},
 		{
@@ -206,7 +211,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
-				bodyLen:     53,
+				bodyLen:     75,
 			},
 		},
 		{
@@ -227,7 +232,99 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(EncondeURLJsonHandler(tt.baseURL, tt.lenShortURL, tt.storage))
+			u := &usecase.Usecase{Storage: tt.storage, Config: config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
+			h := http.HandlerFunc(EncondeURLJson(u))
+			h(w, request)
+
+			result := w.Result()
+
+			assert.Equal(t, tt.want.statusCode, result.StatusCode)
+			assert.Equal(t, tt.want.contentType, result.Header.Get("Content-Type"))
+
+			body, err := io.ReadAll(result.Body)
+			require.NoError(t, err)
+			err = result.Body.Close()
+			require.NoError(t, err)
+			//так как короткая ссылка случайная, проверяем длину тела ответа
+			assert.Equal(t, tt.want.bodyLen, len(body), string(body))
+		})
+	}
+}
+
+func TestEncondeJsonURLHandlerBatch(t *testing.T) {
+	type want struct {
+		contentType string
+		statusCode  int
+		bodyLen     int
+	}
+	tests := []struct {
+		name        string
+		request     string
+		baseURL     string
+		lenShortURL int
+		body        string
+		storage     storage.IStorage
+		want        want
+	}{
+		{
+			name:        "Enconde test #1 (empty body)",
+			request:     "/",
+			baseURL:     "http://localhost:8080",
+			lenShortURL: 8,
+			body:        "",
+			storage:     storage.NewMemStorage(),
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				bodyLen:     51,
+			},
+		},
+		{
+			name:        "Enconde test #2 (bad body, invalid node)",
+			request:     "/",
+			baseURL:     "http://localhost:8080",
+			lenShortURL: 8,
+			body:        `[{"correlation_id":"c978edb7-eb81-45b3-bcc7-e5cf9f5781cd","short_id":"http://qpabthuzw1vjfl.com"},{"correlation_id":"0a5c6e26-f875-44c8-9e09-1ceefa82235e","short_id":"http://nqea9x1nxhuinc.biz/cvn6iupy"}]`,
+			storage:     storage.NewMemStorage(),
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				bodyLen:     71,
+			},
+		},
+		{
+			name:        "Enconde test #3 (bad body, xml format)",
+			request:     "/",
+			baseURL:     "http://localhost:8080",
+			lenShortURL: 8,
+			body:        "<request><url>google.com</url></request>",
+			storage:     storage.NewMemStorage(),
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				bodyLen:     75,
+			},
+		},
+		{
+			name:        "Enconde test #4 (good body)",
+			request:     "/",
+			baseURL:     "http://localhost:8080/",
+			lenShortURL: 8,
+			body:        `[{"correlation_id":"c978edb7-eb81-45b3-bcc7-e5cf9f5781cd","original_url":"http://qpabthuzw1vjfl.com"},{"correlation_id":"0a5c6e26-f875-44c8-9e09-1ceefa82235e","original_url":"http://nqea9x1nxhuinc.biz/cvn6iupy"}]`,
+			storage:     storage.NewMemStorage(),
+			want: want{
+				contentType: "application/json",
+				statusCode:  201,
+				bodyLen:     207,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
+			w := httptest.NewRecorder()
+			u := &usecase.Usecase{Storage: tt.storage, Config: config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
+			h := http.HandlerFunc(EncondeURLJsonBatch(u))
 			h(w, request)
 
 			result := w.Result()

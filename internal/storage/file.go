@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -17,22 +18,22 @@ type URLInfo struct {
 }
 
 type FileStorage struct {
-	Urls   map[string]string
-	file   *os.File
-	writer *bufio.Writer
+	Cache  MemStorage
+	File   *os.File
+	Writer *bufio.Writer
 	sync.RWMutex
 }
 
 func (s *FileStorage) Close() error {
-	return s.file.Close()
+	return s.File.Close()
 }
 
 func NewFileStorage() *FileStorage {
-	return &FileStorage{Urls: make(map[string]string), file: nil, writer: nil}
+	return &FileStorage{Cache: *NewMemStorage(), File: nil, Writer: nil}
 }
 
 func (s *FileStorage) Initialize(filepath string) error {
-	if s.file != nil {
+	if s.File != nil {
 		logger.Warn("File storage already initialized")
 		return nil
 	}
@@ -41,7 +42,7 @@ func (s *FileStorage) Initialize(filepath string) error {
 	if err != nil {
 		return err
 	}
-	s.writer = bufio.NewWriter(file)
+	s.Writer = bufio.NewWriter(file)
 
 	// заполняем кэш данных
 	scanner := bufio.NewScanner(file)
@@ -53,40 +54,53 @@ func (s *FileStorage) Initialize(filepath string) error {
 			logger.Warn("Invalid cache value has read:", value)
 			continue
 		}
-		s.Urls[info.ShortURL] = info.OriginalURL
+		s.Cache.Add(context.Background(), info.OriginalURL, info.ShortURL)
 	}
 	return nil
 }
 
-func (s *FileStorage) Add(originalURL string, shortURL string) error {
+func (s *FileStorage) Add(ctx context.Context, originalURL string, shortURL string) error {
 	s.Lock()
-	s.Urls[shortURL] = originalURL
+	s.Cache.Add(ctx, originalURL, shortURL)
 
-	info := URLInfo{ID: uint(len(s.Urls)), OriginalURL: originalURL, ShortURL: shortURL}
+	info := URLInfo{ID: uint(s.Cache.Size()), OriginalURL: originalURL, ShortURL: shortURL}
 	data, err := json.Marshal(&info)
 	if err != nil {
 		logger.Warn("Can't marchal value:", err)
 	}
 	// записываем значение
-	if _, err := s.writer.Write(data); err != nil {
+	if _, err := s.Writer.Write(data); err != nil {
 		logger.Warn("Can't write cache value:", err)
 	}
 	// добавляем перенос строки
-	if err := s.writer.WriteByte('\n'); err != nil {
+	if err := s.Writer.WriteByte('\n'); err != nil {
 		logger.Warn("Invalid write separator:", err)
 	}
 	// записываем буфер в файл
-	s.writer.Flush()
+	s.Writer.Flush()
 	s.Unlock()
 	return nil
 }
-
-func (s *FileStorage) Get(shortURL string) (string, error) {
+func (s *FileStorage) AddMultiple(ctx context.Context, items []TableItem) error {
+	for _, url := range items {
+		if err := s.Add(ctx, url.OriginalURL, url.ShortURL); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (s *FileStorage) Get(ctx context.Context, shortURL string) (string, error) {
 	s.Lock()
-	longURL, exist := s.Urls[shortURL]
+	longURL, err := s.Cache.Get(ctx, shortURL)
 	s.Unlock()
-	if exist {
+	if err == nil {
 		return longURL, nil
 	}
 	return "", fmt.Errorf("short url not found: %s", shortURL)
+}
+func (s *FileStorage) Ping(ctx context.Context) error {
+	if s.File != nil {
+		return nil
+	}
+	return fmt.Errorf("file not open")
 }

@@ -1,47 +1,36 @@
 package handlers
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
 	"net/http"
 
-	"github.com/denmor86/go-url-shortener.git/internal/helpers"
-	"github.com/denmor86/go-url-shortener.git/internal/models"
+	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 	"github.com/go-chi/chi/v5"
+	"github.com/pkg/errors"
 )
 
-type IBaseStorage interface {
-	Add(string, string) error
-	Get(string) (string, error)
-}
-
-func EncondeURLHandler(baseURL string, lenShortURL int, storage IBaseStorage) http.HandlerFunc {
+func EncondeURL(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		data, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		url := string(data)
-
-		if len(url) == 0 {
-			http.Error(w, "URL is empty", http.StatusBadRequest)
-			return
-		}
-
-		shortURL := helpers.MakeShortURL(url, lenShortURL)
-		storage.Add(url, shortURL)
+		shortURL, err := u.EncondeURL(r.Context(), r.Body)
 
 		w.Header().Set("content-type", "text/plain")
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(helpers.MakeURL(baseURL, shortURL)))
+
+		if err == nil {
+			w.WriteHeader(http.StatusCreated)
+			w.Write(shortURL)
+			return
+		}
+		if errors.Is(err, usecase.ErrUniqueViolation) {
+			w.WriteHeader(http.StatusConflict)
+			w.Write(shortURL)
+			return
+		}
+
+		http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 	}
 }
 
-func DecodeURLHandler(storage IBaseStorage) http.HandlerFunc {
+func DecodeURL(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		var shortURL string
@@ -53,14 +42,9 @@ func DecodeURLHandler(storage IBaseStorage) http.HandlerFunc {
 			shortURL = r.URL.Path[len("/"):]
 		}
 
-		if shortURL == "" {
-			http.Error(w, "URL is empty", http.StatusBadRequest)
-			return
-		}
-
-		url, err := storage.Get(shortURL)
+		url, err := u.DecodeURL(r.Context(), shortURL)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -70,42 +54,49 @@ func DecodeURLHandler(storage IBaseStorage) http.HandlerFunc {
 	}
 }
 
-func EncondeURLJsonHandler(baseURL string, lenShortURL int, storage IBaseStorage) http.HandlerFunc {
+func EncondeURLJson(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		var buf bytes.Buffer
-		// читаем тело запроса
-		_, err := buf.ReadFrom(r.Body)
+		responce, err := u.EncondeURLJson(r.Context(), r.Body)
+
+		w.Header().Set("Content-Type", "application/json")
+
+		if err == nil {
+			w.WriteHeader(http.StatusCreated)
+			w.Write(responce)
+			return
+		}
+		if errors.Is(err, usecase.ErrUniqueViolation) {
+			w.WriteHeader(http.StatusConflict)
+			w.Write(responce)
+			return
+		}
+
+		http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
+	}
+}
+
+func EncondeURLJsonBatch(u *usecase.Usecase) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		responce, err := u.EncondeURLJsonBatch(r.Context(), r.Body)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		var request models.Request
-		if err = json.Unmarshal(buf.Bytes(), &request); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		url := request.URL
-
-		if len(url) == 0 {
-			http.Error(w, "URL is empty", http.StatusBadRequest)
-			return
-		}
-
-		shortURL := helpers.MakeShortURL(url, lenShortURL)
-		storage.Add(url, shortURL)
-
-		var responce models.Response
-		responce.Result = helpers.MakeURL(baseURL, shortURL)
-		resp, err := json.Marshal(responce)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		w.Write(resp)
+		w.Write(responce)
+	}
+}
+
+func PingStorage(u *usecase.Usecase) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := u.PingStorage(r.Context()); err != nil {
+			http.Error(w, errors.Cause(err).Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
 	}
 }

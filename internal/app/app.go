@@ -1,41 +1,61 @@
 package app
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/denmor86/go-url-shortener.git/internal/config"
 	"github.com/denmor86/go-url-shortener.git/internal/logger"
-	"github.com/denmor86/go-url-shortener.git/internal/network/handlers"
 	"github.com/denmor86/go-url-shortener.git/internal/network/router"
+	"github.com/denmor86/go-url-shortener.git/internal/storage"
+	"github.com/denmor86/go-url-shortener.git/internal/usecase"
+	"github.com/pkg/errors"
 )
-
-type IStorage interface {
-	handlers.IBaseStorage
-	Initialize(string) error
-	Close() error
-}
 
 type App struct {
 	Config  config.Config
-	Storage IStorage
+	Storage storage.IStorage
 }
 
 func (a *App) Run() {
 	if err := logger.Initialize(a.Config.LogLevel); err != nil {
-		logger.Panic(err)
+		panic(fmt.Sprintf("can't initialize logger: %s ", errors.Cause(err).Error()))
 	}
-	defer logger.Sync()
-
-	if err := a.Storage.Initialize(a.Config.FileStoragePath); err != nil {
-		logger.Panic("Can't Initialize cache file: ", err)
-	}
-	defer a.Storage.Close()
 
 	logger.Info(
-		"Starting server:", a.Config.ListenAddr,
+		"Starting server config:", a.Config,
 	)
-	err := http.ListenAndServe(a.Config.ListenAddr, router.HandleRouter(a.Config, a.Storage))
-	if err != nil {
-		logger.Panic(err)
+
+	usecase := &usecase.Usecase{
+		Config:  a.Config,
+		Storage: a.Storage,
 	}
+
+	server := &http.Server{
+		Addr:    a.Config.ListenAddr,
+		Handler: router.HandleRouter(usecase),
+	}
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("error listen server", err.Error())
+		}
+	}()
+
+	<-stop
+	logger.Info("Shutdown server")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		logger.Error("error shutdown server", err.Error())
+	}
+	logger.Info("Server stopped")
 }
