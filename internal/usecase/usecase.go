@@ -39,6 +39,10 @@ type ResponseItem struct {
 
 var ErrUniqueViolation = errors.New("URL already exist")
 
+func NewUsecase(cfg config.Config, storage storage.IStorage) *Usecase {
+	return &Usecase{Config: cfg, Storage: storage}
+}
+
 func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader) ([]byte, error) {
 
 	data, err := io.ReadAll(reader)

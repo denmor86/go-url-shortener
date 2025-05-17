@@ -31,14 +31,9 @@ func (a *App) Run() {
 		"Starting server config:", a.Config,
 	)
 
-	usecase := &usecase.Usecase{
-		Config:  a.Config,
-		Storage: a.Storage,
-	}
-
 	server := &http.Server{
 		Addr:    a.Config.ListenAddr,
-		Handler: router.HandleRouter(usecase),
+		Handler: router.HandleRouter(usecase.NewUsecase(a.Config, a.Storage)),
 	}
 
 	stop := make(chan os.Signal, 1)
