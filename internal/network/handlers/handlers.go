@@ -27,6 +27,7 @@ func EncondeURL(u *usecase.Usecase) http.HandlerFunc {
 			}
 
 			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
+			return
 		}
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	}
@@ -75,6 +76,7 @@ func EncondeURLJson(u *usecase.Usecase) http.HandlerFunc {
 			}
 
 			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
+			return
 		}
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	}
@@ -91,6 +93,7 @@ func EncondeURLJsonBatch(u *usecase.Usecase) http.HandlerFunc {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
 			w.Write(responce)
+			return
 		}
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	}

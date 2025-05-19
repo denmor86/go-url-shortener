@@ -172,6 +172,9 @@ func (u *Usecase) PingStorage(ctx context.Context) error {
 
 func (u *Usecase) GetURLS(ctx context.Context, userID string) ([]byte, error) {
 	records, err := u.Storage.GetUserRecords(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("error get user records: %w", err)
+	}
 	if len(records) == 0 {
 		return nil, nil
 	}

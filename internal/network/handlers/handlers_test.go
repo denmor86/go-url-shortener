@@ -15,6 +15,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	testUserID = "c9c5cb66-dbbc-4d57-8cb9-55f58096f79b"
+)
+
 func TestEncondeURLHandler(t *testing.T) {
 	type want struct {
 		contentType string
@@ -63,6 +67,9 @@ func TestEncondeURLHandler(t *testing.T) {
 			w := httptest.NewRecorder()
 			u := &usecase.Usecase{Storage: tt.storage, Config: config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
 			h := http.HandlerFunc(EncondeURL(u))
+			ctx := request.Context()
+			ctx = context.WithValue(ctx, usecase.UserIDContextKey, testUserID)
+			request = request.WithContext(ctx)
 			h(w, request)
 
 			result := w.Result()
@@ -144,6 +151,9 @@ func TestDecodeURLHandler(t *testing.T) {
 			w := httptest.NewRecorder()
 			u := &usecase.Usecase{Storage: tt.storage}
 			h := http.HandlerFunc(DecodeURL(u))
+			ctx := request.Context()
+			ctx = context.WithValue(ctx, usecase.UserIDContextKey, testUserID)
+			request = request.WithContext(ctx)
 			h(w, request)
 
 			result := w.Result()
@@ -234,6 +244,9 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 			w := httptest.NewRecorder()
 			u := &usecase.Usecase{Storage: tt.storage, Config: config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
 			h := http.HandlerFunc(EncondeURLJson(u))
+			ctx := request.Context()
+			ctx = context.WithValue(ctx, usecase.UserIDContextKey, testUserID)
+			request = request.WithContext(ctx)
 			h(w, request)
 
 			result := w.Result()
@@ -325,6 +338,9 @@ func TestEncondeJsonURLHandlerBatch(t *testing.T) {
 			w := httptest.NewRecorder()
 			u := &usecase.Usecase{Storage: tt.storage, Config: config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
 			h := http.HandlerFunc(EncondeURLJsonBatch(u))
+			ctx := request.Context()
+			ctx = context.WithValue(ctx, usecase.UserIDContextKey, testUserID)
+			request = request.WithContext(ctx)
 			h(w, request)
 
 			result := w.Result()
