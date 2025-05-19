@@ -56,6 +56,8 @@ func TestHandleRouter(t *testing.T) {
 		{"/api/shorten", "POST", strings.NewReader("{\"url\": \"https://practicum.yandex.ru\"}"), http.StatusCreated},
 		{"/api/shorten", "POST", strings.NewReader("{\"url\": \"https://google.com\", \"test\": \"test message\"}"), http.StatusCreated},
 		{"/api/shorten/batch", "POST", strings.NewReader(`[{"correlation_id":"c978edb7-eb81-45b3-bcc7-e5cf9f5781cd","original_url":"http://qpabthuzw1vjfl.com"},{"correlation_id":"0a5c6e26-f875-44c8-9e09-1ceefa82235e","original_url":"http://nqea9x1nxhuinc.biz/cvn6iupy"}]`), http.StatusCreated},
+		{"/api/user/urls", "GET", nil, http.StatusNoContent},
+		{"/ping", "GET", nil, http.StatusOK},
 		// bad
 		{"/asdasdasd", "GET", nil, http.StatusBadRequest},
 		{"/", "GET", nil, http.StatusMethodNotAllowed},
@@ -65,8 +67,6 @@ func TestHandleRouter(t *testing.T) {
 		{"/api/shorten", "POST", strings.NewReader("<request><url>google.com</url></request>"), http.StatusBadRequest},
 		{"/api/shorten1", "POST", strings.NewReader("{\"url\": \"https://practicum.yandex.ru\"}"), http.StatusNotFound},
 		{"/api/shorten/batch", "POST", strings.NewReader(`[{"correlation_id":"c978edb7-eb81-45b3-bcc7-e5cf9f5781cd","original_url":""},{"correlation_id":"0a5c6e26-f875-44c8-9e09-1ceefa82235e","original_url":""}]`), http.StatusBadRequest},
-
-		{"/ping", "GET", nil, http.StatusOK},
 	}
 	for _, v := range testTable {
 		resp := testRequest(t, ts, v.metod, v.url, v.body)
