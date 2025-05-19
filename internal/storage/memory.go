@@ -7,13 +7,13 @@ import (
 )
 
 type MemStorage struct {
-	Urls map[string]string
+	Urls map[string]TableRecord
 	sync.RWMutex
 }
 
 func NewMemStorage() *MemStorage {
 	var s MemStorage
-	s.Urls = make(map[string]string)
+	s.Urls = make(map[string]TableRecord)
 	return &s
 }
 
@@ -23,7 +23,7 @@ func (s *MemStorage) Close() error {
 
 func (s *MemStorage) AddRecord(ctx context.Context, record TableRecord) error {
 	s.Lock()
-	s.Urls[record.ShortURL] = record.OriginalURL
+	s.Urls[record.ShortURL] = record
 	s.Unlock()
 	return nil
 }
@@ -39,10 +39,10 @@ func (s *MemStorage) AddRecords(ctx context.Context, records []TableRecord) erro
 
 func (s *MemStorage) GetRecord(ctx context.Context, shortURL string) (string, error) {
 	s.Lock()
-	originalURL, exist := s.Urls[shortURL]
+	record, exist := s.Urls[shortURL]
 	s.Unlock()
 	if exist {
-		return originalURL, nil
+		return record.OriginalURL, nil
 	}
 	return "", fmt.Errorf("short url not found: %s", shortURL)
 }
@@ -50,11 +50,29 @@ func (s *MemStorage) GetRecord(ctx context.Context, shortURL string) (string, er
 func (s *MemStorage) GetUserRecords(ctx context.Context, userID string) ([]TableRecord, error) {
 	var records []TableRecord
 	s.Lock()
-	for shortURL, originalURL := range s.Urls {
-		records = append(records, TableRecord{ShortURL: shortURL, OriginalURL: originalURL})
+	for _, record := range s.Urls {
+		if record.UserID == userID {
+			records = append(records, record)
+		}
 	}
 	s.Unlock()
 	return records, nil
+}
+
+func (s *MemStorage) DeleteURLs(ctx context.Context, userID string, shortURLS []string) error {
+	s.Lock()
+	for _, shortURL := range shortURLS {
+		record, exist := s.Urls[shortURL]
+		if exist && record.UserID == userID {
+			s.Urls[shortURL] = TableRecord{
+				OriginalURL: record.OriginalURL,
+				ShortURL:    record.ShortURL,
+				UserID:      record.UserID,
+				IsDeleted:   true}
+		}
+	}
+	s.Unlock()
+	return nil
 }
 
 func (s *MemStorage) Size() int {

@@ -12,6 +12,7 @@ type TableRecord struct {
 	OriginalURL string
 	ShortURL    string
 	UserID      string
+	IsDeleted   bool
 }
 
 type IStorage interface {
@@ -19,6 +20,7 @@ type IStorage interface {
 	AddRecords(context.Context, []TableRecord) error
 	GetRecord(context.Context, string) (string, error)
 	GetUserRecords(context.Context, string) ([]TableRecord, error)
+	DeleteURLs(context.Context, string, []string) error
 	Ping(ctx context.Context) error
 	Close() error
 }

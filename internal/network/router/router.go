@@ -26,6 +26,7 @@ func HandleRouter(use *usecase.Usecase) chi.Router {
 				r.Route("/urls", func(r chi.Router) {
 					r.Use(auth.AuthHandle)
 					r.Get("/", handlers.GetURLS(use))
+					r.Delete("/", handlers.DeleteURLS(use))
 				})
 			})
 		})

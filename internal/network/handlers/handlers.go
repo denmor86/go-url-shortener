@@ -46,11 +46,14 @@ func DecodeURL(u *usecase.Usecase) http.HandlerFunc {
 		}
 
 		url, err := u.DecodeURL(r.Context(), shortURL)
+		if errors.Is(err, usecase.ErrDeletedViolation) {
+			http.Error(w, errors.Cause(err).Error(), http.StatusGone)
+			return
+		}
 		if err != nil {
 			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 			return
 		}
-
 		w.Header().Set("Location", url)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		w.Write([]byte(url))
@@ -125,6 +128,21 @@ func GetURLS(u *usecase.Usecase) http.HandlerFunc {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write(responce)
+		}
+	}
+}
+
+func DeleteURLS(u *usecase.Usecase) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		if userID := r.Context().Value(usecase.UserIDContextKey); userID != nil {
+			err := u.DeleteURLS(r.Context(), r.Body, userID.(string))
+			if err != nil {
+				http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusAccepted)
 		}
 	}
 }

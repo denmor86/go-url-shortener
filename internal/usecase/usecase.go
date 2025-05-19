@@ -11,12 +11,15 @@ import (
 
 	"github.com/denmor86/go-url-shortener.git/internal/config"
 	"github.com/denmor86/go-url-shortener.git/internal/helpers"
+	"github.com/denmor86/go-url-shortener.git/internal/logger"
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
+	"github.com/denmor86/go-url-shortener.git/internal/workerpool"
 )
 
 type Usecase struct {
-	Config  config.Config
-	Storage storage.IStorage
+	Config     config.Config
+	Storage    storage.IStorage
+	WorkerPool *workerpool.WorkerPool
 }
 
 type Request struct {
@@ -42,14 +45,32 @@ type ResponseURL struct {
 	ShortURL    string `json:"short_url"`
 }
 
+// URLDeleteJob задача удаление записей.
+type URLDeleteJob struct {
+	Storage   storage.IStorage
+	UserID    string
+	ShortURLs []string
+}
+
+// Do удаляет записи пользователя.
+func (j *URLDeleteJob) Do(ctx context.Context) {
+	err := j.Storage.DeleteURLs(ctx, j.UserID, j.ShortURLs)
+	if err != nil {
+		logger.Error("error delete URLs", err.Error())
+		return
+	}
+	logger.Info("URLs is deleted")
+}
+
 type ContextKey string
 
 var UserIDContextKey ContextKey = "userID"
 
 var ErrUniqueViolation = errors.New("URL already exist")
+var ErrDeletedViolation = errors.New("URL is deleted")
 
-func NewUsecase(cfg config.Config, storage storage.IStorage) *Usecase {
-	return &Usecase{Config: cfg, Storage: storage}
+func NewUsecase(cfg config.Config, storage storage.IStorage, workerpool *workerpool.WorkerPool) *Usecase {
+	return &Usecase{Config: cfg, Storage: storage, WorkerPool: workerpool}
 }
 
 func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader, userID string) ([]byte, error) {
@@ -71,7 +92,7 @@ func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader, userID strin
 	if err == nil {
 		return []byte(helpers.MakeURL(u.Config.BaseURL, shortURL)), nil
 	}
-	var storageError *storage.UniqueViolationError
+	var storageError *storage.UniqueViolation
 	// ошибка наличия не уникального URL
 	if errors.As(err, &storageError) {
 		return []byte(helpers.MakeURL(u.Config.BaseURL, storageError.ShortURL)), ErrUniqueViolation
@@ -160,10 +181,16 @@ func (u *Usecase) DecodeURL(ctx context.Context, shortURL string) (string, error
 		return "", fmt.Errorf("URL is empty")
 	}
 	url, err := u.Storage.GetRecord(ctx, shortURL)
-	if err != nil {
-		return "", fmt.Errorf("error read from storage: %w", err)
+	// нет ошибок
+	if err == nil {
+		return url, nil
 	}
-	return url, nil
+	var storageError *storage.DeletedViolation
+	// ошибка: URL помечен на удаление
+	if errors.As(err, &storageError) {
+		return "", ErrDeletedViolation
+	}
+	return "", fmt.Errorf("error read from storage: %w", err)
 }
 
 func (u *Usecase) PingStorage(ctx context.Context) error {
@@ -188,4 +215,21 @@ func (u *Usecase) GetURLS(ctx context.Context, userID string) ([]byte, error) {
 		return nil, fmt.Errorf("error marshaling: %w", err)
 	}
 	return resp, nil
+}
+
+func (u *Usecase) DeleteURLS(ctx context.Context, reader io.Reader, userID string) error {
+	var buf bytes.Buffer
+	// читаем тело запроса
+	_, err := buf.ReadFrom(reader)
+	if err != nil {
+		return fmt.Errorf("error read from body: %w", err)
+	}
+	var shortURLS []string
+	if err = json.Unmarshal(buf.Bytes(), &shortURLS); err != nil {
+		return fmt.Errorf("error unmarshal body: %w", err)
+	}
+	// добавляем задачу на удаление
+	u.WorkerPool.AddJob(&URLDeleteJob{Storage: u.Storage, UserID: userID, ShortURLs: shortURLS})
+
+	return nil
 }

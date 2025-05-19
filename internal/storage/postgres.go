@@ -13,12 +13,20 @@ import (
 	"github.com/pressly/goose/v3"
 )
 
-type UniqueViolationError struct {
+type UniqueViolation struct {
 	Message  string
 	ShortURL string
 }
 
-func (e *UniqueViolationError) Error() string {
+func (e *UniqueViolation) Error() string {
+	return e.Message
+}
+
+type DeletedViolation struct {
+	Message string
+}
+
+func (e *DeletedViolation) Error() string {
 	return e.Message
 }
 
@@ -35,9 +43,10 @@ const (
 						VALUES ($1, $2, $3) 
 						ON CONFLICT (original_url) DO NOTHING
 						RETURNING short_url;`
-	GetOriginalURL = `SELECT original_url FROM URLs WHERE short_url =$1;`
+	GetOriginalURL = `SELECT original_url, is_deleted FROM URLs WHERE short_url =$1;`
 	GetShortURL    = `SELECT short_url FROM URLs WHERE original_url =$1;`
-	GetUserlURL    = `SELECT user_uuid, original_url, short_url FROM urls WHERE user_uuid=$1`
+	GetUserlURL    = `SELECT user_uuid, original_url, short_url FROM urls WHERE user_uuid=$1 AND NOT is_deleted;`
+	DeleteUserlURL = `UPDATE urls SET is_deleted=TRUE WHERE user_uuid=$1 AND short_url=$2`
 )
 
 func NewDatabaseStorage(dsn string) (*DatabaseStorage, error) {
@@ -137,7 +146,7 @@ func (s *DatabaseStorage) AddRecord(ctx context.Context, record TableRecord) err
 	if err != nil {
 		return fmt.Errorf("failed to get record: %w", err)
 	}
-	return &UniqueViolationError{Message: "URL already exists", ShortURL: prevShortURL}
+	return &UniqueViolation{Message: "URL already exists", ShortURL: prevShortURL}
 }
 
 func (s *DatabaseStorage) AddRecords(ctx context.Context, records []TableRecord) error {
@@ -163,12 +172,16 @@ func (s *DatabaseStorage) AddRecords(ctx context.Context, records []TableRecord)
 func (s *DatabaseStorage) GetRecord(ctx context.Context, shortURL string) (string, error) {
 
 	var originalURL string
-	err := s.Pool.QueryRow(ctx, GetOriginalURL, shortURL).Scan(&originalURL)
+	var isDeleted bool
+	err := s.Pool.QueryRow(ctx, GetOriginalURL, shortURL).Scan(&originalURL, &isDeleted)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return "", fmt.Errorf("short url not found: %s", shortURL)
 		}
 		return "", fmt.Errorf("failed to get record: %w", err)
+	}
+	if isDeleted {
+		return originalURL, &DeletedViolation{Message: "URL is deleted"}
 	}
 	return originalURL, nil
 }
@@ -189,6 +202,29 @@ func (s *DatabaseStorage) GetUserRecords(ctx context.Context, userID string) ([]
 		records = append(records, record)
 	}
 	return records, err
+}
+
+func (s *DatabaseStorage) DeleteURLs(ctx context.Context, userID string, shortURLS []string) error {
+	tx, err := s.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = tx.Rollback(ctx)
+	}()
+
+	batch := &pgx.Batch{}
+	for _, rec := range shortURLS {
+		batch.Queue(DeleteUserlURL, userID, rec)
+	}
+	br := tx.SendBatch(ctx, batch)
+
+	err = br.Close()
+	if err != nil {
+		return fmt.Errorf("error  close batch: %w", err)
+	}
+	return tx.Commit(ctx)
 }
 
 func (s *DatabaseStorage) Ping(ctx context.Context) error {
