@@ -8,15 +8,17 @@ import (
 	"github.com/pkg/errors"
 )
 
-type TableItem struct {
+type TableRecord struct {
 	OriginalURL string
 	ShortURL    string
+	UserID      string
 }
 
 type IStorage interface {
-	Add(context.Context, string, string) error
-	AddMultiple(context.Context, []TableItem) error
-	Get(context.Context, string) (string, error)
+	AddRecord(context.Context, TableRecord) error
+	AddRecords(context.Context, []TableRecord) error
+	GetRecord(context.Context, string) (string, error)
+	GetUserRecords(context.Context, string) ([]TableRecord, error)
 	Ping(ctx context.Context) error
 	Close() error
 }

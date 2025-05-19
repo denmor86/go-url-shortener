@@ -7,23 +7,30 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func HandleRouter(u *usecase.Usecase) chi.Router {
+func HandleRouter(use *usecase.Usecase) chi.Router {
+	auth := middleware.NewAuthorization(use.Config)
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
-		r.Post("/", middleware.LogHandle(
-			middleware.GzipHandle(
-				handlers.EncondeURL(u)))) // POST /
-		r.Post("/api/shorten", middleware.LogHandle(
-			middleware.GzipHandle(
-				handlers.EncondeURLJson(u)))) // POST /api/shorten
-		r.Post("/api/shorten/batch", middleware.LogHandle(
-			middleware.GzipHandle(
-				handlers.EncondeURLJsonBatch(u)))) // POST /api/shorten/batch
-		r.Route("/{id}", func(r chi.Router) {
-			r.Get("/", middleware.LogHandle(handlers.DecodeURL(u))) // GET /shortURL
+		r.Use(middleware.LogHandle)
+		r.Get("/{id}", handlers.DecodeURL(use))
+		r.With(middleware.GzipHandle).With(auth.CookieHandle).
+			Post("/", handlers.EncondeURL(use))
+		r.Route("/api", func(r chi.Router) {
+			r.Use(middleware.GzipHandle)
+			r.Route("/shorten", func(r chi.Router) {
+				r.Use(auth.CookieHandle)
+				r.Post("/", handlers.EncondeURLJson(use))
+				r.Post("/batch", handlers.EncondeURLJsonBatch(use))
+			})
+			r.Route("/user", func(r chi.Router) {
+				r.Route("/urls", func(r chi.Router) {
+					r.Use(auth.AuthHandle)
+					r.Get("/", handlers.GetURLS(use))
+				})
+			})
 		})
 		r.Route("/ping", func(r chi.Router) {
-			r.Get("/", middleware.LogHandle(handlers.PingStorage(u))) // GET /shortURL
+			r.Get("/", handlers.PingStorage(use)) // GET /ping
 		})
 	})
 	return r

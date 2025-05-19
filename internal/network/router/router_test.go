@@ -33,14 +33,11 @@ func TestHandleRouter(t *testing.T) {
 		logger.Panic(err)
 	}
 	defer logger.Sync()
-	storage := storage.NewStorage(config)
-	storage.Add(context.Background(), "https://practicum.yandex.ru/", "12345678")
-	storage.Add(context.Background(), "https://google.com", "iFBc_bhG")
+	store := storage.NewStorage(config)
+	store.AddRecord(context.Background(), storage.TableRecord{OriginalURL: "https://practicum.yandex.ru/", ShortURL: "12345678"})
+	store.AddRecord(context.Background(), storage.TableRecord{OriginalURL: "https://google.com", ShortURL: "iFBc_bhG"})
 
-	usecase := &usecase.Usecase{
-		Config:  config,
-		Storage: storage,
-	}
+	usecase := usecase.NewUsecase(config, store)
 
 	ts := httptest.NewServer(HandleRouter(usecase))
 	defer ts.Close()

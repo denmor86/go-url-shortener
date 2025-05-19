@@ -37,13 +37,22 @@ type ResponseItem struct {
 	URL string `json:"short_url"`
 }
 
+type ResponseURL struct {
+	OriginalURL string `json:"original_url"`
+	ShortURL    string `json:"short_url"`
+}
+
+type ContextKey string
+
+var UserIDContextKey ContextKey = "userID"
+
 var ErrUniqueViolation = errors.New("URL already exist")
 
 func NewUsecase(cfg config.Config, storage storage.IStorage) *Usecase {
 	return &Usecase{Config: cfg, Storage: storage}
 }
 
-func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader) ([]byte, error) {
+func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader, userID string) ([]byte, error) {
 
 	data, err := io.ReadAll(reader)
 	if err != nil {
@@ -57,7 +66,7 @@ func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader) ([]byte, err
 	}
 
 	shortURL := helpers.MakeShortURL(url, u.Config.ShortURLLen)
-	err = u.Storage.Add(ctx, url, shortURL)
+	err = u.Storage.AddRecord(ctx, storage.TableRecord{OriginalURL: url, ShortURL: shortURL, UserID: userID})
 	// нет ошибок
 	if err == nil {
 		return []byte(helpers.MakeURL(u.Config.BaseURL, shortURL)), nil
@@ -70,7 +79,7 @@ func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader) ([]byte, err
 	return nil, fmt.Errorf("error storage URL: %w", err)
 }
 
-func (u *Usecase) EncondeURLJson(ctx context.Context, reader io.Reader) ([]byte, error) {
+func (u *Usecase) EncondeURLJson(ctx context.Context, reader io.Reader, userID string) ([]byte, error) {
 
 	var buf bytes.Buffer
 	// читаем тело запроса
@@ -83,7 +92,7 @@ func (u *Usecase) EncondeURLJson(ctx context.Context, reader io.Reader) ([]byte,
 		return nil, fmt.Errorf("error unmarshal body: %w", err)
 	}
 
-	shortURL, err := u.EncondeURL(ctx, strings.NewReader(request.URL))
+	shortURL, err := u.EncondeURL(ctx, strings.NewReader(request.URL), userID)
 	var responce Response
 	// нет ошибок
 	if err == nil {
@@ -106,7 +115,7 @@ func (u *Usecase) EncondeURLJson(ctx context.Context, reader io.Reader) ([]byte,
 	return nil, fmt.Errorf("error encode URL: %w", err)
 }
 
-func (u *Usecase) EncondeURLJsonBatch(ctx context.Context, reader io.Reader) ([]byte, error) {
+func (u *Usecase) EncondeURLJsonBatch(ctx context.Context, reader io.Reader, userID string) ([]byte, error) {
 
 	var buf bytes.Buffer
 	// читаем тело запроса
@@ -123,18 +132,18 @@ func (u *Usecase) EncondeURLJsonBatch(ctx context.Context, reader io.Reader) ([]
 		return nil, fmt.Errorf("empty request: %w", err)
 	}
 
-	items := make([]storage.TableItem, 0, len(requestItems))
+	items := make([]storage.TableRecord, 0, len(requestItems))
 	responseItems := make([]ResponseItem, 0, len(requestItems))
 	for _, item := range requestItems {
 		if item.ID == "" || item.URL == "" {
 			return nil, fmt.Errorf("invalid request item: (ID: %s, URL: %s", item.ID, item.URL)
 		}
 		shortURL := helpers.MakeShortURL(item.URL, u.Config.ShortURLLen)
-		items = append(items, storage.TableItem{ShortURL: shortURL, OriginalURL: item.URL})
+		items = append(items, storage.TableRecord{ShortURL: shortURL, OriginalURL: item.URL, UserID: userID})
 		responseItems = append(responseItems, ResponseItem{ID: item.ID, URL: helpers.MakeURL(u.Config.BaseURL, shortURL)})
 	}
 
-	if err := u.Storage.AddMultiple(ctx, items); err != nil {
+	if err := u.Storage.AddRecords(ctx, items); err != nil {
 		return nil, fmt.Errorf("error storage urls: %w", err)
 	}
 
@@ -150,7 +159,7 @@ func (u *Usecase) DecodeURL(ctx context.Context, shortURL string) (string, error
 	if shortURL == "" {
 		return "", fmt.Errorf("URL is empty")
 	}
-	url, err := u.Storage.Get(ctx, shortURL)
+	url, err := u.Storage.GetRecord(ctx, shortURL)
 	if err != nil {
 		return "", fmt.Errorf("error read from storage: %w", err)
 	}
@@ -159,4 +168,21 @@ func (u *Usecase) DecodeURL(ctx context.Context, shortURL string) (string, error
 
 func (u *Usecase) PingStorage(ctx context.Context) error {
 	return u.Storage.Ping(ctx)
+}
+
+func (u *Usecase) GetURLS(ctx context.Context, userID string) ([]byte, error) {
+	records, err := u.Storage.GetUserRecords(ctx, userID)
+	if len(records) == 0 {
+		return nil, nil
+	}
+	responseItems := make([]ResponseURL, 0, len(records))
+	for _, item := range records {
+		responseItems = append(responseItems, ResponseURL{OriginalURL: item.OriginalURL, ShortURL: helpers.MakeURL(u.Config.BaseURL, item.ShortURL)})
+	}
+
+	resp, err := json.Marshal(responseItems)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling: %w", err)
+	}
+	return resp, nil
 }

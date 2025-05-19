@@ -21,35 +21,46 @@ func (s *MemStorage) Close() error {
 	return nil
 }
 
-func (s *MemStorage) Add(ctx context.Context, longURL string, shortURL string) error {
+func (s *MemStorage) AddRecord(ctx context.Context, record TableRecord) error {
 	s.Lock()
-	s.Urls[shortURL] = longURL
+	s.Urls[record.ShortURL] = record.OriginalURL
 	s.Unlock()
 	return nil
 }
 
-func (s *MemStorage) AddMultiple(ctx context.Context, items []TableItem) error {
-	for _, url := range items {
-		if err := s.Add(ctx, url.OriginalURL, url.ShortURL); err != nil {
+func (s *MemStorage) AddRecords(ctx context.Context, records []TableRecord) error {
+	for _, rec := range records {
+		if err := s.AddRecord(ctx, rec); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *MemStorage) Get(ctx context.Context, shortURL string) (string, error) {
+func (s *MemStorage) GetRecord(ctx context.Context, shortURL string) (string, error) {
 	s.Lock()
-	longURL, exist := s.Urls[shortURL]
+	originalURL, exist := s.Urls[shortURL]
 	s.Unlock()
 	if exist {
-		return longURL, nil
+		return originalURL, nil
 	}
 	return "", fmt.Errorf("short url not found: %s", shortURL)
+}
+
+func (s *MemStorage) GetUserRecords(ctx context.Context, userID string) ([]TableRecord, error) {
+	var records []TableRecord
+	s.Lock()
+	for shortURL, originalURL := range s.Urls {
+		records = append(records, TableRecord{ShortURL: shortURL, OriginalURL: originalURL})
+	}
+	s.Unlock()
+	return records, nil
 }
 
 func (s *MemStorage) Size() int {
 	return len(s.Urls)
 }
+
 func (s *MemStorage) Ping(ctx context.Context) error {
 	return nil
 }

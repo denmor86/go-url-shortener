@@ -83,8 +83,8 @@ func TestEncondeURLHandler(t *testing.T) {
 func TestDecodeURLHandler(t *testing.T) {
 
 	memstorage := storage.NewMemStorage()
-	memstorage.Add(context.Background(), "https://practicum.yandex.ru/", "12345678")
-	memstorage.Add(context.Background(), "https://google.com", "iFBc_bhG")
+	memstorage.AddRecord(context.Background(), storage.TableRecord{OriginalURL: "https://practicum.yandex.ru/", ShortURL: "12345678"})
+	memstorage.AddRecord(context.Background(), storage.TableRecord{OriginalURL: "https://google.com", ShortURL: "iFBc_bhG"})
 
 	type want struct {
 		contentType string

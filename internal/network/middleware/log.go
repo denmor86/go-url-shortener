@@ -35,8 +35,8 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 }
 
 // LogHandle — middleware-логер для входящих HTTP-запросов.
-func LogHandle(h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func LogHandle(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		start := time.Now()
 
@@ -49,7 +49,7 @@ func LogHandle(h http.HandlerFunc) http.HandlerFunc {
 			responseData:   responseData,
 		}
 
-		h(&lw, r)
+		h.ServeHTTP(&lw, r)
 
 		duration := time.Since(start)
 
@@ -60,5 +60,5 @@ func LogHandle(h http.HandlerFunc) http.HandlerFunc {
 			"duration", duration,
 			"size", responseData.size,
 		)
-	}
+	})
 }

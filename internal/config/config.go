@@ -18,6 +18,7 @@ type Config struct {
 	FileStoragePath string        `env:"FILE_STORAGE_PATH"`
 	DatabaseDSN     string        `env:"DATABASE_DSN"`
 	DatabaseTimeout time.Duration `env:"DATABASE_TIMEOUT"`
+	JWTSecret       string        `env:"JWT_SECRET"`
 }
 
 const (
@@ -28,17 +29,20 @@ const (
 	DefaultCacheFileName   = "shortener_cache.txt"
 	DefaultDatabaseDSN     = ""
 	DefaultDatabaseTimeout = time.Duration(5)
+	DefaultJWTSecret       = "secret"
 )
 
 func NewConfig() Config {
 
 	pflag.StringP("server", "a", DefaultListenServer, "Server listen address in a form host:port.")
 	pflag.StringP("base_url", "b", DefaultBaseURL, "Server base URL.")
-	pflag.IntP("url_len", "s", DefaultShortURLlen, "Short URL length.")
+	pflag.IntP("url_len", "n", DefaultShortURLlen, "Short URL length.")
 	pflag.StringP("log_level", "l", DefaultLogLevel, "Log level.")
 	pflag.StringP("file_storage_path", "f", filepath.Join(os.TempDir(), DefaultCacheFileName), "Path to cache file.")
 	pflag.StringP("db_dsn", "d", DefaultDatabaseDSN, "Database DSN")
 	pflag.IntP("db_timeout", "t", int(DefaultDatabaseTimeout.Abs()), "Database timeout connection, seconds.")
+	pflag.StringP("jwt_secret", "s", DefaultJWTSecret, "Secret to JWT")
+
 	pflag.Parse()
 
 	var config Config
@@ -79,6 +83,11 @@ func NewConfig() Config {
 	if config.DatabaseTimeout == 0 {
 		if timeout, err := pflag.CommandLine.GetInt("db_timeout"); err == nil {
 			config.DatabaseTimeout = time.Duration(timeout) * time.Second
+		}
+	}
+	if config.JWTSecret == "" {
+		if secret, err := pflag.CommandLine.GetString("jwt_secret"); err == nil {
+			config.JWTSecret = secret
 		}
 	}
 	return config

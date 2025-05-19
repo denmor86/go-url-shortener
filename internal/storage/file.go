@@ -54,16 +54,16 @@ func (s *FileStorage) Initialize(filepath string) error {
 			logger.Warn("Invalid cache value has read:", value)
 			continue
 		}
-		s.Cache.Add(context.Background(), info.OriginalURL, info.ShortURL)
+		s.Cache.AddRecord(context.Background(), TableRecord{OriginalURL: info.OriginalURL, ShortURL: info.ShortURL})
 	}
 	return nil
 }
 
-func (s *FileStorage) Add(ctx context.Context, originalURL string, shortURL string) error {
+func (s *FileStorage) AddRecord(ctx context.Context, record TableRecord) error {
 	s.Lock()
-	s.Cache.Add(ctx, originalURL, shortURL)
+	s.Cache.AddRecord(ctx, record)
 
-	info := URLInfo{ID: uint(s.Cache.Size()), OriginalURL: originalURL, ShortURL: shortURL}
+	info := URLInfo{ID: uint(s.Cache.Size()), OriginalURL: record.OriginalURL, ShortURL: record.ShortURL}
 	data, err := json.Marshal(&info)
 	if err != nil {
 		logger.Warn("Can't marchal value:", err)
@@ -81,23 +81,34 @@ func (s *FileStorage) Add(ctx context.Context, originalURL string, shortURL stri
 	s.Unlock()
 	return nil
 }
-func (s *FileStorage) AddMultiple(ctx context.Context, items []TableItem) error {
-	for _, url := range items {
-		if err := s.Add(ctx, url.OriginalURL, url.ShortURL); err != nil {
+func (s *FileStorage) AddRecords(ctx context.Context, records []TableRecord) error {
+	for _, rec := range records {
+		if err := s.AddRecord(ctx, rec); err != nil {
 			return err
 		}
 	}
 	return nil
 }
-func (s *FileStorage) Get(ctx context.Context, shortURL string) (string, error) {
+func (s *FileStorage) GetRecord(ctx context.Context, shortURL string) (string, error) {
 	s.Lock()
-	longURL, err := s.Cache.Get(ctx, shortURL)
+	longURL, err := s.Cache.GetRecord(ctx, shortURL)
 	s.Unlock()
 	if err == nil {
 		return longURL, nil
 	}
 	return "", fmt.Errorf("short url not found: %s", shortURL)
 }
+
+func (s *FileStorage) GetUserRecords(ctx context.Context, userID string) ([]TableRecord, error) {
+	var records []TableRecord
+	s.Lock()
+	for shortURL, originalURL := range s.Cache.Urls {
+		records = append(records, TableRecord{ShortURL: shortURL, OriginalURL: originalURL})
+	}
+	s.Unlock()
+	return records, nil
+}
+
 func (s *FileStorage) Ping(ctx context.Context) error {
 	if s.File != nil {
 		return nil

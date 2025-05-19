@@ -10,23 +10,25 @@ import (
 
 func EncondeURL(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if userID := r.Context().Value(usecase.UserIDContextKey); userID != nil {
+			shortURL, err := u.EncondeURL(r.Context(), r.Body, userID.(string))
 
-		shortURL, err := u.EncondeURL(r.Context(), r.Body)
+			w.Header().Set("content-type", "text/plain")
 
-		w.Header().Set("content-type", "text/plain")
+			if err == nil {
+				w.WriteHeader(http.StatusCreated)
+				w.Write(shortURL)
+				return
+			}
+			if errors.Is(err, usecase.ErrUniqueViolation) {
+				w.WriteHeader(http.StatusConflict)
+				w.Write(shortURL)
+				return
+			}
 
-		if err == nil {
-			w.WriteHeader(http.StatusCreated)
-			w.Write(shortURL)
-			return
+			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 		}
-		if errors.Is(err, usecase.ErrUniqueViolation) {
-			w.WriteHeader(http.StatusConflict)
-			w.Write(shortURL)
-			return
-		}
-
-		http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
+		http.Error(w, "internal error", http.StatusInternalServerError)
 	}
 }
 
@@ -56,38 +58,41 @@ func DecodeURL(u *usecase.Usecase) http.HandlerFunc {
 
 func EncondeURLJson(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if userID := r.Context().Value(usecase.UserIDContextKey); userID != nil {
+			responce, err := u.EncondeURLJson(r.Context(), r.Body, userID.(string))
 
-		responce, err := u.EncondeURLJson(r.Context(), r.Body)
+			w.Header().Set("Content-Type", "application/json")
 
-		w.Header().Set("Content-Type", "application/json")
+			if err == nil {
+				w.WriteHeader(http.StatusCreated)
+				w.Write(responce)
+				return
+			}
+			if errors.Is(err, usecase.ErrUniqueViolation) {
+				w.WriteHeader(http.StatusConflict)
+				w.Write(responce)
+				return
+			}
 
-		if err == nil {
-			w.WriteHeader(http.StatusCreated)
-			w.Write(responce)
-			return
+			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 		}
-		if errors.Is(err, usecase.ErrUniqueViolation) {
-			w.WriteHeader(http.StatusConflict)
-			w.Write(responce)
-			return
-		}
-
-		http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
+		http.Error(w, "internal error", http.StatusInternalServerError)
 	}
 }
 
 func EncondeURLJsonBatch(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		responce, err := u.EncondeURLJsonBatch(r.Context(), r.Body)
-		if err != nil {
-			http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
-			return
+		if userID := r.Context().Value(usecase.UserIDContextKey); userID != nil {
+			responce, err := u.EncondeURLJsonBatch(r.Context(), r.Body, userID.(string))
+			if err != nil {
+				http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			w.Write(responce)
 		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(responce)
+		http.Error(w, "internal error", http.StatusInternalServerError)
 	}
 }
 
@@ -98,5 +103,25 @@ func PingStorage(u *usecase.Usecase) http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func GetURLS(u *usecase.Usecase) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		if userID := r.Context().Value(usecase.UserIDContextKey); userID != nil {
+			responce, err := u.GetURLS(r.Context(), userID.(string))
+			if err != nil {
+				http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
+				return
+			}
+			if responce == nil {
+				http.Error(w, "no user data", http.StatusNoContent)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(responce)
+		}
 	}
 }

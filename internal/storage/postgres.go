@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"embed"
 	"errors"
 	"fmt"
 
@@ -30,12 +31,13 @@ type DatabaseStorage struct {
 const (
 	CheckExist     = `SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname =$1)`
 	CreateDatabase = `CREATE DATABASE %s`
-	InsertRecord   = `INSERT INTO URLs (short_url, original_url) 
-						VALUES ($1, $2) 
+	InsertRecord   = `INSERT INTO URLs (short_url, original_url, user_uuid) 
+						VALUES ($1, $2, $3) 
 						ON CONFLICT (original_url) DO NOTHING
 						RETURNING short_url;`
 	GetOriginalURL = `SELECT original_url FROM URLs WHERE short_url =$1;`
 	GetShortURL    = `SELECT short_url FROM URLs WHERE original_url =$1;`
+	GetUserlURL    = `SELECT user_uuid, original_url, short_url FROM urls WHERE user_uuid=$1`
 )
 
 func NewDatabaseStorage(dsn string) (*DatabaseStorage, error) {
@@ -62,6 +64,9 @@ func (s *DatabaseStorage) Initialize() error {
 	return nil
 }
 
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
+
 func Migration(DatabaseDSN string) error {
 
 	db, err := sql.Open("pgx", DatabaseDSN)
@@ -69,8 +74,8 @@ func Migration(DatabaseDSN string) error {
 		return fmt.Errorf("open db error: %w ", err)
 	}
 	defer db.Close()
-
-	goose.SetBaseFS(nil)
+	// используется для внутренней файловой системы (загруженные ресурсы)
+	goose.SetBaseFS(embedMigrations)
 
 	if err := goose.SetDialect("postgres"); err != nil {
 		return fmt.Errorf("goose set dialect error: %w ", err)
@@ -115,10 +120,10 @@ func (s *DatabaseStorage) CreateDatabase(ctx context.Context) error {
 	return nil
 }
 
-func (s *DatabaseStorage) Add(ctx context.Context, originalURL string, shortURL string) error {
+func (s *DatabaseStorage) AddRecord(ctx context.Context, record TableRecord) error {
 
 	var prevShortURL string
-	err := s.Pool.QueryRow(ctx, InsertRecord, shortURL, originalURL).Scan(&prevShortURL)
+	err := s.Pool.QueryRow(ctx, InsertRecord, record.ShortURL, record.OriginalURL, record.UserID).Scan(&prevShortURL)
 	// добавили в базу, совпадений нет
 	if err == nil {
 		return nil
@@ -128,14 +133,14 @@ func (s *DatabaseStorage) Add(ctx context.Context, originalURL string, shortURL 
 		return fmt.Errorf("failed to add record: %w", err)
 	}
 	// есть совпадение оригинального адреса
-	err = s.Pool.QueryRow(ctx, GetShortURL, originalURL).Scan(&prevShortURL)
+	err = s.Pool.QueryRow(ctx, GetShortURL, record.OriginalURL).Scan(&prevShortURL)
 	if err != nil {
 		return fmt.Errorf("failed to get record: %w", err)
 	}
 	return &UniqueViolationError{Message: "URL already exists", ShortURL: prevShortURL}
 }
 
-func (s *DatabaseStorage) AddMultiple(ctx context.Context, items []TableItem) error {
+func (s *DatabaseStorage) AddRecords(ctx context.Context, records []TableRecord) error {
 	tx, err := s.Pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
 	if err != nil {
 		return err
@@ -145,8 +150,8 @@ func (s *DatabaseStorage) AddMultiple(ctx context.Context, items []TableItem) er
 		err = tx.Rollback(ctx)
 	}()
 
-	for _, url := range items {
-		_, err := s.Pool.Exec(ctx, InsertRecord, url.ShortURL, url.OriginalURL)
+	for _, rec := range records {
+		_, err := s.Pool.Exec(ctx, InsertRecord, rec.ShortURL, rec.OriginalURL, rec.UserID)
 		if err != nil {
 			return err
 		}
@@ -155,7 +160,7 @@ func (s *DatabaseStorage) AddMultiple(ctx context.Context, items []TableItem) er
 	return tx.Commit(ctx)
 }
 
-func (s *DatabaseStorage) Get(ctx context.Context, shortURL string) (string, error) {
+func (s *DatabaseStorage) GetRecord(ctx context.Context, shortURL string) (string, error) {
 
 	var originalURL string
 	err := s.Pool.QueryRow(ctx, GetOriginalURL, shortURL).Scan(&originalURL)
@@ -166,6 +171,24 @@ func (s *DatabaseStorage) Get(ctx context.Context, shortURL string) (string, err
 		return "", fmt.Errorf("failed to get record: %w", err)
 	}
 	return originalURL, nil
+}
+
+func (s *DatabaseStorage) GetUserRecords(ctx context.Context, userID string) ([]TableRecord, error) {
+	var records []TableRecord
+
+	rows, err := s.Pool.Query(ctx, GetUserlURL, userID)
+	if err != nil {
+		return records, fmt.Errorf("failed to get user record: %w", err)
+	}
+	for rows.Next() {
+		var record TableRecord
+		err := rows.Scan(&record.UserID, &record.OriginalURL, &record.ShortURL)
+		if err != nil {
+			return records, fmt.Errorf("failed scan  user record: %w", err)
+		}
+		records = append(records, record)
+	}
+	return records, err
 }
 
 func (s *DatabaseStorage) Ping(ctx context.Context) error {
