@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/denmor86/go-url-shortener.git/internal/network/router"
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
 	"github.com/denmor86/go-url-shortener.git/internal/usecase"
+	"github.com/denmor86/go-url-shortener.git/internal/workerpool"
 	"github.com/pkg/errors"
 )
 
@@ -31,14 +33,19 @@ func (a *App) Run() {
 		"Starting server config:", a.Config,
 	)
 
-	usecase := &usecase.Usecase{
-		Config:  a.Config,
-		Storage: a.Storage,
-	}
+	workerpool := workerpool.NewWorkerPool(runtime.NumCPU())
+	use := usecase.NewUsecase(a.Config, a.Storage, workerpool)
+
+	workerpool.Run()
+	defer func() {
+		workerpool.Close()
+		logger.Info("Close worker pool...")
+		workerpool.Wait()
+	}()
 
 	server := &http.Server{
 		Addr:    a.Config.ListenAddr,
-		Handler: router.HandleRouter(usecase),
+		Handler: router.HandleRouter(use),
 	}
 
 	stop := make(chan os.Signal, 1)
