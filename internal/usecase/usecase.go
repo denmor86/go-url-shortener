@@ -86,7 +86,10 @@ func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader, userID strin
 		return nil, fmt.Errorf("URL is empty")
 	}
 
-	shortURL := helpers.MakeShortURL(url, u.Config.ShortURLLen)
+	shortURL, err := helpers.MakeShortURL(url, u.Config.ShortURLLen)
+	if err != nil {
+		return nil, fmt.Errorf("error make short URL: %w", err)
+	}
 	err = u.Storage.AddRecord(ctx, storage.TableRecord{OriginalURL: url, ShortURL: shortURL, UserID: userID})
 	// нет ошибок
 	if err == nil {
@@ -159,7 +162,10 @@ func (u *Usecase) EncondeURLJsonBatch(ctx context.Context, reader io.Reader, use
 		if item.ID == "" || item.URL == "" {
 			return nil, fmt.Errorf("invalid request item: (ID: %s, URL: %s", item.ID, item.URL)
 		}
-		shortURL := helpers.MakeShortURL(item.URL, u.Config.ShortURLLen)
+		shortURL, err := helpers.MakeShortURL(item.URL, u.Config.ShortURLLen)
+		if err != nil {
+			return nil, fmt.Errorf("error make short URL: %w", err)
+		}
 		items = append(items, storage.TableRecord{ShortURL: shortURL, OriginalURL: item.URL, UserID: userID})
 		responseItems = append(responseItems, ResponseItem{ID: item.ID, URL: helpers.MakeURL(u.Config.BaseURL, shortURL)})
 	}
