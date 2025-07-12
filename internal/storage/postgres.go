@@ -46,7 +46,7 @@ const (
 	GetOriginalURL = `SELECT original_url, is_deleted FROM URLs WHERE short_url =$1;`
 	GetShortURL    = `SELECT short_url FROM URLs WHERE original_url =$1;`
 	GetUserlURL    = `SELECT user_uuid, original_url, short_url FROM urls WHERE user_uuid=$1 AND NOT is_deleted;`
-	DeleteUserlURL = `UPDATE urls SET is_deleted=TRUE WHERE user_uuid=$1 AND short_url=$2`
+	DeleteUserURL  = `UPDATE urls SET is_deleted=TRUE WHERE user_uuid=$1 AND short_url=$2`
 )
 
 func NewDatabaseStorage(dsn string) (*DatabaseStorage, error) {
@@ -211,19 +211,28 @@ func (s *DatabaseStorage) DeleteURLs(ctx context.Context, userID string, shortUR
 	}
 
 	defer func() {
-		err = tx.Rollback(ctx)
+		if err != nil {
+			tx.Rollback(ctx)
+		}
 	}()
 
 	batch := &pgx.Batch{}
 	for _, rec := range shortURLS {
-		batch.Queue(DeleteUserlURL, userID, rec)
+		batch.Queue(DeleteUserURL, userID, rec)
 	}
 	br := tx.SendBatch(ctx, batch)
+	defer br.Close()
+
+	_, err = br.Exec()
+	if err != nil {
+		return fmt.Errorf("error executing batch: %w", err)
+	}
 
 	err = br.Close()
 	if err != nil {
-		return fmt.Errorf("error  close batch: %w", err)
+		return fmt.Errorf("error closing batch: %w", err)
 	}
+
 	return tx.Commit(ctx)
 }
 
