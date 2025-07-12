@@ -5,6 +5,7 @@ import (
 	"github.com/denmor86/go-url-shortener.git/internal/network/middleware"
 	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
 func HandleRouter(use *usecase.Usecase) chi.Router {
@@ -34,5 +35,8 @@ func HandleRouter(use *usecase.Usecase) chi.Router {
 			r.Get("/", handlers.PingStorage(use)) // GET /ping
 		})
 	})
+	if use.Config.UseDebug {
+		r.Mount("/debug", chiMiddleware.Profiler())
+	}
 	return r
 }

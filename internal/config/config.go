@@ -19,6 +19,7 @@ type Config struct {
 	DatabaseDSN     string        `env:"DATABASE_DSN"`
 	DatabaseTimeout time.Duration `env:"DATABASE_TIMEOUT"`
 	JWTSecret       string        `env:"JWT_SECRET"`
+	UseDebug        bool
 }
 
 const (
@@ -30,6 +31,7 @@ const (
 	DefaultDatabaseDSN     = ""
 	DefaultDatabaseTimeout = time.Duration(5)
 	DefaultJWTSecret       = "secret"
+	DefaultUseDebug        = false
 )
 
 func NewConfig() Config {
@@ -42,6 +44,7 @@ func NewConfig() Config {
 	pflag.StringP("db_dsn", "d", DefaultDatabaseDSN, "Database DSN")
 	pflag.IntP("db_timeout", "t", int(DefaultDatabaseTimeout.Abs()), "Database timeout connection, seconds.")
 	pflag.StringP("jwt_secret", "s", DefaultJWTSecret, "Secret to JWT")
+	pflag.BoolP("debug", "m", DefaultUseDebug, "Debug mode")
 
 	pflag.Parse()
 
@@ -90,6 +93,11 @@ func NewConfig() Config {
 			config.JWTSecret = secret
 		}
 	}
+
+	if debug, err := pflag.CommandLine.GetBool("debug"); err == nil {
+		config.UseDebug = debug
+	}
+
 	return config
 }
 
@@ -101,5 +109,6 @@ func DefaultConfig() Config {
 		LogLevel:        DefaultLogLevel,
 		FileStoragePath: "",
 		DatabaseDSN:     DefaultDatabaseDSN,
+		UseDebug:        true,
 	}
 }
