@@ -5,6 +5,9 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
+
+	"github.com/denmor86/go-url-shortener.git/internal/logger"
 )
 
 // CompressWriter реализует интерфейс http.ResponseWriter и позволяет прозрачно для сервера
@@ -14,10 +17,23 @@ type CompressWriter struct {
 	zw *gzip.Writer
 }
 
+// writerPool внутренний пул Writer
+var writerPool = sync.Pool{
+	New: func() any {
+		return gzip.NewWriter(io.Discard)
+	},
+}
+
 func NewCompressWriter(w http.ResponseWriter) *CompressWriter {
+	// Получаем Writer из пула (или создаём новый, если пул пуст)
+	zw := writerPool.Get().(*gzip.Writer)
+
+	// Сбрасываем Writer для использования с новым io.Writer
+	zw.Reset(w)
+
 	return &CompressWriter{
 		w:  w,
-		zw: gzip.NewWriter(w),
+		zw: zw,
 	}
 }
 
@@ -27,14 +43,14 @@ func (c *CompressWriter) Header() http.Header {
 
 func (c *CompressWriter) Write(p []byte) (int, error) {
 	contentType := c.w.Header().Get("Content-Type")
-	isJSONContent := strings.Contains(contentType, "application/json")
-	isHTMLContent := strings.Contains(contentType, "text/html")
-	isPlainContent := strings.Contains(contentType, "text/plain")
-	// упаковываем контент определенных типов
-	if isJSONContent || isHTMLContent || isPlainContent {
+	switch {
+	case strings.Contains(contentType, "application/json"),
+		strings.Contains(contentType, "text/html"),
+		strings.Contains(contentType, "text/plain"):
 		return c.zw.Write(p)
+	default:
+		return c.w.Write(p)
 	}
-	return c.w.Write(p)
 }
 
 func (c *CompressWriter) WriteHeader(statusCode int) {
@@ -45,8 +61,14 @@ func (c *CompressWriter) WriteHeader(statusCode int) {
 }
 
 // Close закрывает gzip.Writer и досылает все данные из буфера.
+
 func (c *CompressWriter) Close() error {
-	return c.zw.Close()
+	err := c.zw.Close()
+
+	// Возвращаем Writer в пул для повторного использования
+	writerPool.Put(c.zw)
+
+	return err
 }
 
 // CompressReader реализует интерфейс io.ReadCloser и позволяет прозрачно для сервера
@@ -85,19 +107,16 @@ func GzipHandle(h http.Handler) http.Handler {
 
 		ow := w
 
-		acceptEncoding := r.Header.Get("Accept-Encoding")
-		supportsGzip := strings.Contains(acceptEncoding, "gzip")
-		if supportsGzip {
+		if supportsGzip(r.Header) {
 			cw := NewCompressWriter(w)
 			ow = cw
 			defer cw.Close()
 		}
 
-		contentEncoding := r.Header.Get("Content-Encoding")
-		sendsGzip := strings.Contains(contentEncoding, "gzip")
-		if sendsGzip {
+		if sendsGzip(r.Header) {
 			cr, err := NewCompressReader(r.Body)
 			if err != nil {
+				logger.Warn("Failed to create gzip reader:", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
@@ -107,4 +126,12 @@ func GzipHandle(h http.Handler) http.Handler {
 
 		h.ServeHTTP(ow, r)
 	})
+}
+
+func supportsGzip(header http.Header) bool {
+	return strings.Contains(header.Get("Accept-Encoding"), "gzip")
+}
+
+func sendsGzip(header http.Header) bool {
+	return strings.Contains(header.Get("Content-Encoding"), "gzip")
 }

@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/denmor86/go-url-shortener.git/internal/logger"
@@ -18,6 +19,14 @@ type (
 	loggingResponseWriter struct {
 		http.ResponseWriter // встраиваем оригинальный http.ResponseWriter
 		responseData        *responseData
+	}
+)
+
+var (
+	loggingWriterPool = sync.Pool{
+		New: func() any {
+			return &loggingResponseWriter{}
+		},
 	}
 )
 
@@ -44,12 +53,12 @@ func LogHandle(h http.Handler) http.Handler {
 			status: 0,
 			size:   0,
 		}
-		lw := loggingResponseWriter{
-			ResponseWriter: w, // встраиваем оригинальный http.ResponseWriter
-			responseData:   responseData,
-		}
+		// Получаем из пула
+		lw := loggingWriterPool.Get().(*loggingResponseWriter)
+		lw.ResponseWriter = w
+		lw.responseData = responseData
 
-		h.ServeHTTP(&lw, r)
+		h.ServeHTTP(lw, r)
 
 		duration := time.Since(start)
 
@@ -60,5 +69,8 @@ func LogHandle(h http.Handler) http.Handler {
 			"duration", duration,
 			"size", responseData.size,
 		)
+
+		// Возвращаем в пул
+		loggingWriterPool.Put(lw)
 	})
 }
