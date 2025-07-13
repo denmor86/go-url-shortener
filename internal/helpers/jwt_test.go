@@ -153,3 +153,28 @@ func TestParseJWT(t *testing.T) {
 		})
 	}
 }
+
+const uuid = "0789b8d9-cef8-4837-be99-ec36fbf5c536"
+
+var secret = []byte("secret")
+
+func BenchmarkBuildJWTString(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		//nolint:errcheck
+		BuildJWT(uuid, secret)
+	}
+}
+
+func BenchmarkParseJWT(b *testing.B) {
+	jwt, err := BuildJWT(uuid, secret)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		//nolint:errcheck
+		ParseJWT(jwt, secret)
+	}
+}

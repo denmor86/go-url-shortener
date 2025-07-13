@@ -3,6 +3,7 @@ package helpers
 import (
 	"testing"
 
+	"github.com/denmor86/go-url-shortener.git/pkg/random"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -60,5 +61,16 @@ func assertValidBase64URL(t *testing.T, s string) {
 	validChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_="
 	for _, c := range s {
 		assert.Contains(t, validChars, string(c), "URL contains invalid character")
+	}
+}
+
+const size = 8
+
+func BenchmarkMakeShortURL(b *testing.B) {
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		//nolint:errcheck
+		MakeShortURL(random.URL().String(), size)
 	}
 }
