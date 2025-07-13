@@ -109,6 +109,7 @@ func DefaultConfig() Config {
 		LogLevel:        DefaultLogLevel,
 		FileStoragePath: "",
 		DatabaseDSN:     DefaultDatabaseDSN,
+		JWTSecret:       DefaultJWTSecret,
 		UseDebug:        true,
 	}
 }
