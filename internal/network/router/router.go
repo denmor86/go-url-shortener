@@ -1,11 +1,12 @@
 package router
 
 import (
+	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+
 	"github.com/denmor86/go-url-shortener.git/internal/network/handlers"
 	"github.com/denmor86/go-url-shortener.git/internal/network/middleware"
 	"github.com/denmor86/go-url-shortener.git/internal/usecase"
-	"github.com/go-chi/chi/v5"
-	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
 func HandleRouter(use *usecase.Usecase) chi.Router {

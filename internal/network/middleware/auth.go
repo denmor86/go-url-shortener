@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/denmor86/go-url-shortener.git/internal/config"
 	"github.com/denmor86/go-url-shortener.git/internal/helpers"
 	"github.com/denmor86/go-url-shortener.git/internal/usecase"
-	"github.com/google/uuid"
 )
 
 const (

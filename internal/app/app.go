@@ -10,13 +10,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/denmor86/go-url-shortener.git/internal/config"
 	"github.com/denmor86/go-url-shortener.git/internal/logger"
 	"github.com/denmor86/go-url-shortener.git/internal/network/router"
 	"github.com/denmor86/go-url-shortener.git/internal/storage"
 	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 	"github.com/denmor86/go-url-shortener.git/internal/workerpool"
-	"github.com/pkg/errors"
 )
 
 type App struct {

@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/denmor86/go-url-shortener.git/internal/config"
 	"github.com/pkg/errors"
+
+	"github.com/denmor86/go-url-shortener.git/internal/config"
 )
 
 type TableRecord struct {

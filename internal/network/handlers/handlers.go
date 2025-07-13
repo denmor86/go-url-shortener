@@ -3,9 +3,10 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
+
+	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 )
 
 func EncondeURL(u *usecase.Usecase) http.HandlerFunc {

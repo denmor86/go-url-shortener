@@ -3,9 +3,10 @@ package helpers
 import (
 	"testing"
 
-	"github.com/denmor86/go-url-shortener.git/pkg/random"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/denmor86/go-url-shortener.git/pkg/random"
 )
 
 func TestMakeShortURL(t *testing.T) {
