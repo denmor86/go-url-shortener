@@ -78,6 +78,9 @@ func main() {
 		}
 		// разбираем ответ
 		urls, err := parseBatchResponse(batchResponse)
+		if err != nil {
+			log.Fatalf("parse batch responce failed: %v", err)
+		}
 		deleteItems := make([]string, 0, len(urls))
 		for _, url := range urls {
 			// подготовка записей для удаления
