@@ -9,11 +9,11 @@ import (
 	"io"
 	"strings"
 
-	"github.com/denmor86/go-url-shortener.git/internal/config"
-	"github.com/denmor86/go-url-shortener.git/internal/helpers"
-	"github.com/denmor86/go-url-shortener.git/internal/logger"
-	"github.com/denmor86/go-url-shortener.git/internal/storage"
-	"github.com/denmor86/go-url-shortener.git/internal/workerpool"
+	"github.com/denmor86/go-url-shortener/internal/config"
+	"github.com/denmor86/go-url-shortener/internal/helpers"
+	"github.com/denmor86/go-url-shortener/internal/logger"
+	"github.com/denmor86/go-url-shortener/internal/storage"
+	"github.com/denmor86/go-url-shortener/internal/workerpool"
 )
 
 // Usecase - модель основной бизнес логики

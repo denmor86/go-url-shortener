@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
 
-	"github.com/denmor86/go-url-shortener.git/internal/usecase"
+	"github.com/denmor86/go-url-shortener/internal/usecase"
 )
 
 // EncondeURL - метод-обработчик получения запроса на формирования короткой ссылки

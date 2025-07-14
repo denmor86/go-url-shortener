@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/denmor86/go-url-shortener.git/internal/config"
-	"github.com/denmor86/go-url-shortener.git/internal/helpers"
-	"github.com/denmor86/go-url-shortener.git/internal/usecase"
+	"github.com/denmor86/go-url-shortener/internal/config"
+	"github.com/denmor86/go-url-shortener/internal/helpers"
+	"github.com/denmor86/go-url-shortener/internal/usecase"
 )
 
 const (

@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/denmor86/go-url-shortener.git/internal/config"
+	"github.com/denmor86/go-url-shortener/internal/config"
 )
 
 // Модели записи в БД для таблицы с URL

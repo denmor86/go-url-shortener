@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/denmor86/go-url-shortener.git/internal/app"
-	"github.com/denmor86/go-url-shortener.git/internal/config"
-	"github.com/denmor86/go-url-shortener.git/internal/logger"
-	"github.com/denmor86/go-url-shortener.git/internal/storage"
+	"github.com/denmor86/go-url-shortener/internal/app"
+	"github.com/denmor86/go-url-shortener/internal/config"
+	"github.com/denmor86/go-url-shortener/internal/logger"
+	"github.com/denmor86/go-url-shortener/internal/storage"
 )
 
 // функция main вызывается автоматически при запуске приложения

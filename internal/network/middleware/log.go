@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/denmor86/go-url-shortener.git/internal/logger"
+	"github.com/denmor86/go-url-shortener/internal/logger"
 )
 
 type (

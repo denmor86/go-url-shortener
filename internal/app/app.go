@@ -12,12 +12,12 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/denmor86/go-url-shortener.git/internal/config"
-	"github.com/denmor86/go-url-shortener.git/internal/logger"
-	"github.com/denmor86/go-url-shortener.git/internal/network/router"
-	"github.com/denmor86/go-url-shortener.git/internal/storage"
-	"github.com/denmor86/go-url-shortener.git/internal/usecase"
-	"github.com/denmor86/go-url-shortener.git/internal/workerpool"
+	"github.com/denmor86/go-url-shortener/internal/config"
+	"github.com/denmor86/go-url-shortener/internal/logger"
+	"github.com/denmor86/go-url-shortener/internal/network/router"
+	"github.com/denmor86/go-url-shortener/internal/storage"
+	"github.com/denmor86/go-url-shortener/internal/usecase"
+	"github.com/denmor86/go-url-shortener/internal/workerpool"
 )
 
 // App - модель данных приложения

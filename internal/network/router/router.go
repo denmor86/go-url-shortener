@@ -4,9 +4,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 
-	"github.com/denmor86/go-url-shortener.git/internal/network/handlers"
-	"github.com/denmor86/go-url-shortener.git/internal/network/middleware"
-	"github.com/denmor86/go-url-shortener.git/internal/usecase"
+	"github.com/denmor86/go-url-shortener/internal/network/handlers"
+	"github.com/denmor86/go-url-shortener/internal/network/middleware"
+	"github.com/denmor86/go-url-shortener/internal/usecase"
 )
 
 // HandleRouter - метод формирования обработки запросов из внешнего API

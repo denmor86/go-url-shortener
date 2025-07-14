@@ -12,8 +12,8 @@ import (
 	"path"
 	"time"
 
-	"github.com/denmor86/go-url-shortener.git/internal/usecase"
-	"github.com/denmor86/go-url-shortener.git/pkg/random"
+	"github.com/denmor86/go-url-shortener/internal/usecase"
+	"github.com/denmor86/go-url-shortener/pkg/random"
 )
 
 // GenerateURLItems создает срез RequestItem указанного размера

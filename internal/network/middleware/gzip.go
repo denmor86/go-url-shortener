@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/denmor86/go-url-shortener.git/internal/logger"
+	"github.com/denmor86/go-url-shortener/internal/logger"
 )
 
 // CompressWriter реализует интерфейс http.ResponseWriter и позволяет прозрачно для сервера

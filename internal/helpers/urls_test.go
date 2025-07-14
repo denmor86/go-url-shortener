@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/denmor86/go-url-shortener.git/pkg/random"
+	"github.com/denmor86/go-url-shortener/pkg/random"
 )
 
 func TestMakeShortURL(t *testing.T) {

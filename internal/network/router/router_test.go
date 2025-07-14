@@ -12,11 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/denmor86/go-url-shortener.git/internal/config"
-	"github.com/denmor86/go-url-shortener.git/internal/logger"
-	"github.com/denmor86/go-url-shortener.git/internal/storage"
-	"github.com/denmor86/go-url-shortener.git/internal/usecase"
-	"github.com/denmor86/go-url-shortener.git/internal/workerpool"
+	"github.com/denmor86/go-url-shortener/internal/config"
+	"github.com/denmor86/go-url-shortener/internal/logger"
+	"github.com/denmor86/go-url-shortener/internal/storage"
+	"github.com/denmor86/go-url-shortener/internal/usecase"
+	"github.com/denmor86/go-url-shortener/internal/workerpool"
 )
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) *http.Response {
