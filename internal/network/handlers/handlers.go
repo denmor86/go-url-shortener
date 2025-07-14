@@ -9,6 +9,7 @@ import (
 	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 )
 
+// EncondeURL - метод-обработчик получения запроса на формирования короткой ссылки
 func EncondeURL(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if userID := r.Context().Value(usecase.UserIDContextKey); userID != nil {
@@ -34,6 +35,7 @@ func EncondeURL(u *usecase.Usecase) http.HandlerFunc {
 	}
 }
 
+// DecodeURL - метод-обработчик получения запроса на получение оригинального URL по короткой ссылке
 func DecodeURL(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -61,6 +63,7 @@ func DecodeURL(u *usecase.Usecase) http.HandlerFunc {
 	}
 }
 
+// EncondeURLJson - метод-обработчик получения запроса на формирование короткой ссылки. Тело запроса в формате JSON
 func EncondeURLJson(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if userID := r.Context().Value(usecase.UserIDContextKey); userID != nil {
@@ -86,6 +89,7 @@ func EncondeURLJson(u *usecase.Usecase) http.HandlerFunc {
 	}
 }
 
+// EncondeURLJsonBatch - метод-обработчик получения запроса на формирование массива коротких ссылок. Тело запроса формате JSON
 func EncondeURLJsonBatch(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if userID := r.Context().Value(usecase.UserIDContextKey); userID != nil {
@@ -103,6 +107,7 @@ func EncondeURLJsonBatch(u *usecase.Usecase) http.HandlerFunc {
 	}
 }
 
+// PingStorage - метод-обработчик проверки соединения с хранилищем данных
 func PingStorage(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := u.PingStorage(r.Context()); err != nil {
@@ -113,6 +118,7 @@ func PingStorage(u *usecase.Usecase) http.HandlerFunc {
 	}
 }
 
+// GetURLS - метод-обработчик получения данных о сокращенных URL пользователя
 func GetURLS(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -133,6 +139,7 @@ func GetURLS(u *usecase.Usecase) http.HandlerFunc {
 	}
 }
 
+// DeleteURLS - метод-обработчик формирования запроса на удаление данных о сокращенных URL пользователя
 func DeleteURLS(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 

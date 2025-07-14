@@ -16,43 +16,49 @@ import (
 	"github.com/denmor86/go-url-shortener.git/internal/workerpool"
 )
 
+// Usecase - модель основной бизнес логики
 type Usecase struct {
-	Config     config.Config
-	Storage    storage.IStorage
-	WorkerPool *workerpool.WorkerPool
+	Config     config.Config          // конфигурация
+	Storage    storage.IStorage       // хранилище
+	WorkerPool *workerpool.WorkerPool // пул потоков
 }
 
+// Request - модель запроса на формирование короткой ссылки
 type Request struct {
-	URL string `json:"url"`
+	URL string `json:"url"` // оригинальный URL
 }
 
+// Response - модель ответа на запрос формирования короткой ссылки
 type Response struct {
-	Result string `json:"result"`
+	Result string `json:"result"` // короткий URL
 }
 
+// RequestItem - модель запроса на формирование массива коротких ссылок
 type RequestItem struct {
-	ID  string `json:"correlation_id"`
-	URL string `json:"original_url"`
+	ID  string `json:"correlation_id"` // UUID ссылки
+	URL string `json:"original_url"`   // оригинальный URL
 }
 
+// ResponseItem - модель ответа на запрос формирования массива коротких ссылок
 type ResponseItem struct {
-	ID  string `json:"correlation_id"`
-	URL string `json:"short_url"`
+	ID  string `json:"correlation_id"` // UUID ссылки
+	URL string `json:"short_url"`      // короткий URL
 }
 
+// ResponseItem - модель ответа на запрос массива существующих у пользователя ссылок
 type ResponseURL struct {
-	OriginalURL string `json:"original_url"`
-	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"` // оригинальный URL
+	ShortURL    string `json:"short_url"`    // короткий URL
 }
 
-// URLDeleteJob задача удаление записей.
+// URLDeleteJob - модель задачи на удаление записей
 type URLDeleteJob struct {
-	Storage   storage.IStorage
-	UserID    string
-	ShortURLs []string
+	Storage   storage.IStorage // хранилище
+	UserID    string           // UUID пользователя
+	ShortURLs []string         // массив  коротких URL
 }
 
-// Do удаляет записи пользователя.
+// Do - удаляет записи пользователя.
 func (j *URLDeleteJob) Do(ctx context.Context) {
 	err := j.Storage.DeleteURLs(ctx, j.UserID, j.ShortURLs)
 	if err != nil {
@@ -62,17 +68,24 @@ func (j *URLDeleteJob) Do(ctx context.Context) {
 	logger.Info("URLs is deleted")
 }
 
+// ContextKey - тип ключа в передаваемом контексте
 type ContextKey string
 
+// UserIDContextKey - имя ключа пользователя в передаваемом контексте
 var UserIDContextKey ContextKey = "userID"
 
+// ErrUniqueViolation - пользовательская ошибка "URL уже существует"
 var ErrUniqueViolation = errors.New("URL already exist")
+
+// ErrDeletedViolation - пользовательская ошибка "URL удален"
 var ErrDeletedViolation = errors.New("URL is deleted")
 
+// NewUsecase - метод создания объекта бизнес логики
 func NewUsecase(cfg config.Config, storage storage.IStorage, workerpool *workerpool.WorkerPool) *Usecase {
 	return &Usecase{Config: cfg, Storage: storage, WorkerPool: workerpool}
 }
 
+// EncondeURL - метод формирования короткой ссылки на основе тела запроса в текстовом формате
 func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader, userID string) ([]byte, error) {
 
 	data, err := io.ReadAll(reader)
@@ -103,6 +116,7 @@ func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader, userID strin
 	return nil, fmt.Errorf("error storage URL: %w", err)
 }
 
+// EncondeURLJson - метод формирования короткой ссылки на основе тела запроса в JSON формате
 func (u *Usecase) EncondeURLJson(ctx context.Context, reader io.Reader, userID string) ([]byte, error) {
 
 	var buf bytes.Buffer
@@ -139,6 +153,7 @@ func (u *Usecase) EncondeURLJson(ctx context.Context, reader io.Reader, userID s
 	return nil, fmt.Errorf("error encode URL: %w", err)
 }
 
+// EncondeURLJsonBatch - метод формирования массива коротких ссылок на основе тела запроса в JSON формате
 func (u *Usecase) EncondeURLJsonBatch(ctx context.Context, reader io.Reader, userID string) ([]byte, error) {
 
 	var buf bytes.Buffer
@@ -181,6 +196,7 @@ func (u *Usecase) EncondeURLJsonBatch(ctx context.Context, reader io.Reader, use
 	return resp, nil
 }
 
+// DecodeURL - метод получения оригинального URL по короткой ссылке
 func (u *Usecase) DecodeURL(ctx context.Context, shortURL string) (string, error) {
 
 	if shortURL == "" {
@@ -199,10 +215,12 @@ func (u *Usecase) DecodeURL(ctx context.Context, shortURL string) (string, error
 	return "", fmt.Errorf("error read from storage: %w", err)
 }
 
+// PingStorage - метод определения состояния соединения с хранилищем (БД, файл, ОП)
 func (u *Usecase) PingStorage(ctx context.Context) error {
 	return u.Storage.Ping(ctx)
 }
 
+// GetURLS - метод получения информации об имеющихся записях URL по пользователю
 func (u *Usecase) GetURLS(ctx context.Context, userID string) ([]byte, error) {
 	records, err := u.Storage.GetUserRecords(ctx, userID)
 	if err != nil {
@@ -223,6 +241,7 @@ func (u *Usecase) GetURLS(ctx context.Context, userID string) ([]byte, error) {
 	return resp, nil
 }
 
+// DeleteURLS - метод запроса на удаление информации об имеющихся записях URL по пользователю
 func (u *Usecase) DeleteURLS(ctx context.Context, reader io.Reader, userID string) error {
 	var buf bytes.Buffer
 	// читаем тело запроса

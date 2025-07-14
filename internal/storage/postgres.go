@@ -13,42 +13,55 @@ import (
 	"github.com/pressly/goose/v3"
 )
 
+// UniqueViolation - ошибка нарушения уникальности URL
 type UniqueViolation struct {
-	Message  string
-	ShortURL string
+	Message  string // сообщение с ошибкой
+	ShortURL string // короткая ссылка
 }
 
+// Error - метод получения текста ошибки
 func (e *UniqueViolation) Error() string {
 	return e.Message
 }
 
+// DeletedViolation - ошибка нарушения ранее удаленного URL
 type DeletedViolation struct {
 	Message string
 }
 
+// Error - метод получения текста ошибки
 func (e *DeletedViolation) Error() string {
 	return e.Message
 }
 
+// DatabaseStorage - хранилище данных в БД
 type DatabaseStorage struct {
-	Pool   *pgxpool.Pool
-	Config *pgx.ConnConfig
-	DSN    string
+	Pool   *pgxpool.Pool   // пул подключений
+	Config *pgx.ConnConfig // конфигурация БД
+	DSN    string          // строка подключения БД
 }
 
 const (
-	CheckExist     = `SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname =$1)`
+	// CheckExist - SQL запрос для проверки наличи БД
+	CheckExist = `SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname =$1)`
+	// CreateDatabase - SQL запрос для создания БД
 	CreateDatabase = `CREATE DATABASE %s`
-	InsertRecord   = `INSERT INTO URLs (short_url, original_url, user_uuid) 
+	// InsertRecord - SQL запрос добавления записи по URL
+	InsertRecord = `INSERT INTO URLs (short_url, original_url, user_uuid) 
 						VALUES ($1, $2, $3) 
 						ON CONFLICT (original_url) DO NOTHING
 						RETURNING short_url;`
+	// GetOriginalURL - SQL запрос получения оригинальной URL по короткой записи
 	GetOriginalURL = `SELECT original_url, is_deleted FROM URLs WHERE short_url =$1;`
-	GetShortURL    = `SELECT short_url FROM URLs WHERE original_url =$1;`
-	GetUserlURL    = `SELECT user_uuid, original_url, short_url FROM urls WHERE user_uuid=$1 AND NOT is_deleted;`
-	DeleteUserURL  = `UPDATE urls SET is_deleted=TRUE WHERE user_uuid=$1 AND short_url=$2`
+	// GetShortURL - SQL запрос получения короткой записи по оригинаольному URL
+	GetShortURL = `SELECT short_url FROM URLs WHERE original_url =$1;`
+	// GetUserlURL - SQL запрос записи по пользователю
+	GetUserlURL = `SELECT user_uuid, original_url, short_url FROM urls WHERE user_uuid=$1 AND NOT is_deleted;`
+	// DeleteUserURL - SQL запрос отметки записи для удаления по пользователю и короткой ссылке
+	DeleteUserURL = `UPDATE urls SET is_deleted=TRUE WHERE user_uuid=$1 AND short_url=$2`
 )
 
+// NewDatabaseStorage - метод создания хранилища данных в БД
 func NewDatabaseStorage(dsn string) (*DatabaseStorage, error) {
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
@@ -61,6 +74,7 @@ func NewDatabaseStorage(dsn string) (*DatabaseStorage, error) {
 	return &DatabaseStorage{Pool: pool, Config: cfg.ConnConfig, DSN: dsn}, nil
 }
 
+// Initialize - метод инициализации хранилища(создание БД, миграции)
 func (s *DatabaseStorage) Initialize() error {
 
 	if err := s.CreateDatabase(context.Background()); err != nil {
@@ -76,6 +90,7 @@ func (s *DatabaseStorage) Initialize() error {
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
+// Migration - метод миграций таблиц БД
 func Migration(DatabaseDSN string) error {
 
 	db, err := sql.Open("pgx", DatabaseDSN)
@@ -96,11 +111,13 @@ func Migration(DatabaseDSN string) error {
 	return nil
 }
 
+// Close - метод закрытия соединения с БД
 func (s *DatabaseStorage) Close() error {
 	s.Pool.Close()
 	return nil
 }
 
+// CreateDatabase - метод создания БД
 func (s *DatabaseStorage) CreateDatabase(ctx context.Context) error {
 	// goose не умеет создавать БД
 	conn, err := pgx.ConnectConfig(ctx, s.Config)
@@ -129,6 +146,7 @@ func (s *DatabaseStorage) CreateDatabase(ctx context.Context) error {
 	return nil
 }
 
+// AddRecord - метод добавления записи в БД
 func (s *DatabaseStorage) AddRecord(ctx context.Context, record TableRecord) error {
 
 	var prevShortURL string
@@ -149,6 +167,7 @@ func (s *DatabaseStorage) AddRecord(ctx context.Context, record TableRecord) err
 	return &UniqueViolation{Message: "URL already exists", ShortURL: prevShortURL}
 }
 
+// AddRecords - метод добавления массива записей в БД
 func (s *DatabaseStorage) AddRecords(ctx context.Context, records []TableRecord) error {
 	tx, err := s.Pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
 	if err != nil {
@@ -169,6 +188,7 @@ func (s *DatabaseStorage) AddRecords(ctx context.Context, records []TableRecord)
 	return tx.Commit(ctx)
 }
 
+// GetRecord - метод получения записи по короткой ссылке
 func (s *DatabaseStorage) GetRecord(ctx context.Context, shortURL string) (string, error) {
 
 	var originalURL string
@@ -186,6 +206,7 @@ func (s *DatabaseStorage) GetRecord(ctx context.Context, shortURL string) (strin
 	return originalURL, nil
 }
 
+// GetUserRecords - метод получения массива записей пользователя из БД
 func (s *DatabaseStorage) GetUserRecords(ctx context.Context, userID string) ([]TableRecord, error) {
 	var records []TableRecord
 
@@ -204,6 +225,7 @@ func (s *DatabaseStorage) GetUserRecords(ctx context.Context, userID string) ([]
 	return records, err
 }
 
+// DeleteURLs - метод отметки массива записей пользователя на удаление
 func (s *DatabaseStorage) DeleteURLs(ctx context.Context, userID string, shortURLS []string) error {
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
@@ -236,6 +258,7 @@ func (s *DatabaseStorage) DeleteURLs(ctx context.Context, userID string, shortUR
 	return tx.Commit(ctx)
 }
 
+// Ping - метод проверки соединения с БД
 func (s *DatabaseStorage) Ping(ctx context.Context) error {
 	return s.Pool.Ping(ctx)
 }

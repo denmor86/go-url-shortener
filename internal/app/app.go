@@ -20,11 +20,13 @@ import (
 	"github.com/denmor86/go-url-shortener.git/internal/workerpool"
 )
 
+// App - модель данных приложения
 type App struct {
 	Config  config.Config
 	Storage storage.IStorage
 }
 
+// Run - метод иницилизации приложения и запуска сервера обработки сообщений
 func (a *App) Run() {
 	if err := logger.Initialize(a.Config.LogLevel); err != nil {
 		panic(fmt.Sprintf("can't initialize logger: %s ", errors.Cause(err).Error()))

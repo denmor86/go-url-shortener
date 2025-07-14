@@ -9,6 +9,7 @@ import (
 	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 )
 
+// HandleRouter - метод формирования обработки запросов из внешнего API
 func HandleRouter(use *usecase.Usecase) chi.Router {
 	auth := middleware.NewAuthorization(use.Config)
 	r := chi.NewRouter()

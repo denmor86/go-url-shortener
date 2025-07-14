@@ -37,10 +37,12 @@ func NewCompressWriter(w http.ResponseWriter) *CompressWriter {
 	}
 }
 
+// Header — получение заголовка из пользовательского io.ResponseWriter
 func (c *CompressWriter) Header() http.Header {
 	return c.w.Header()
 }
 
+// Write — запись в пользовательский io.ResponseWriter
 func (c *CompressWriter) Write(p []byte) (int, error) {
 	contentType := c.w.Header().Get("Content-Type")
 	switch {
@@ -53,6 +55,7 @@ func (c *CompressWriter) Write(p []byte) (int, error) {
 	}
 }
 
+// WriteHeader — запись заголовка в пользовательском io.ResponseWriter
 func (c *CompressWriter) WriteHeader(statusCode int) {
 	if statusCode < http.StatusMultipleChoices {
 		c.w.Header().Set("Content-Encoding", "gzip")
@@ -60,8 +63,7 @@ func (c *CompressWriter) WriteHeader(statusCode int) {
 	c.w.WriteHeader(statusCode)
 }
 
-// Close закрывает gzip.Writer и досылает все данные из буфера.
-
+// Close — закрытие пользовательского io.ResponseWriter
 func (c *CompressWriter) Close() error {
 	err := c.zw.Close()
 
@@ -71,13 +73,14 @@ func (c *CompressWriter) Close() error {
 	return err
 }
 
-// CompressReader реализует интерфейс io.ReadCloser и позволяет прозрачно для сервера
+// CompressReader - интерфейс io.ReadCloser и позволяет прозрачно для сервера
 // декомпрессировать получаемые от клиента данные
 type CompressReader struct {
 	r  io.ReadCloser
 	zr *gzip.Reader
 }
 
+// NewCompressReader — создание пользовательского io.ReadCloser с поддержкой упаковки данных в gzip
 func NewCompressReader(r io.ReadCloser) (*CompressReader, error) {
 	zr, err := gzip.NewReader(r)
 	if err != nil {
@@ -90,10 +93,12 @@ func NewCompressReader(r io.ReadCloser) (*CompressReader, error) {
 	}, nil
 }
 
+// Read — чтение из пользовательского io.ReadCloser
 func (c CompressReader) Read(p []byte) (n int, err error) {
 	return c.zr.Read(p)
 }
 
+// Close — закрытие пользовательского io.ReadCloser
 func (c *CompressReader) Close() error {
 	if err := c.r.Close(); err != nil {
 		return err
@@ -128,10 +133,12 @@ func GzipHandle(h http.Handler) http.Handler {
 	})
 }
 
+// supportsGzip - метод определения неоходимости распаковки тела запроса из gzip
 func supportsGzip(header http.Header) bool {
 	return strings.Contains(header.Get("Accept-Encoding"), "gzip")
 }
 
+// sendsGzip - метод определения неоходимости упаковки тела запроса в gzip
 func sendsGzip(header http.Header) bool {
 	return strings.Contains(header.Get("Content-Encoding"), "gzip")
 }

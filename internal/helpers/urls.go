@@ -8,8 +8,10 @@ import (
 	"time"
 )
 
+// JWTExpire - время жизни токена
 const JWTExpire = time.Hour * 3
 
+// MakeShortURL - метод формирования короткого URL c использованием базового URL и длинны необходимого короткого URL
 func MakeShortURL(urlValue string, size int) (string, error) {
 	// Проверка корректности размера
 	if size <= 0 {
@@ -32,6 +34,7 @@ func MakeShortURL(urlValue string, size int) (string, error) {
 	return encoded[:size], nil
 }
 
+// MakeURL - метод формирования полного URL на основе базового URL и короткой ссылки
 func MakeURL(baseURL, shortURL string) string {
 
 	var fullURL string

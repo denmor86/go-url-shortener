@@ -13,17 +13,21 @@ import (
 )
 
 const (
+	// TokenCookie имя ключа для UUID пользователя в JWT токене
 	TokenCookie = "user-token"
 )
 
+// Authorization - модель middelware для авторизации пользователя
 type Authorization struct {
-	Secret []byte
+	Secret []byte // секрет для JWT
 }
 
+// NewAuthorization - метод формирования объекта middelware для авторизации пользователя
 func NewAuthorization(cfg config.Config) *Authorization {
 	return &Authorization{Secret: []byte(cfg.JWTSecret)}
 }
 
+// CheckCookie - метод проверки Cookie. Проводит валидацию токена и извлекает UUID пользователя
 func CheckCookie(secret []byte, r *http.Request) (string, error) {
 	tokenCookie, err := r.Cookie(TokenCookie)
 	if err != nil {

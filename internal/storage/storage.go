@@ -9,13 +9,15 @@ import (
 	"github.com/denmor86/go-url-shortener.git/internal/config"
 )
 
+// Модели записи в БД для таблицы с URL
 type TableRecord struct {
-	OriginalURL string
-	ShortURL    string
-	UserID      string
-	IsDeleted   bool
+	OriginalURL string // оригинальный URL
+	ShortURL    string // сокращенный URL
+	UserID      string // идентификатор пользователя
+	IsDeleted   bool   // признак необходимости удаления из хранилища
 }
 
+// Модели интерфейсов для работы с хранилищем данных
 type IStorage interface {
 	AddRecord(context.Context, TableRecord) error
 	AddRecords(context.Context, []TableRecord) error
@@ -26,6 +28,7 @@ type IStorage interface {
 	Close() error
 }
 
+// NewStorage создание интерферса хранилища данных (поддерживает хранение в БД, оперативной памяти и текстовом файле)
 func NewStorage(cfg config.Config) IStorage {
 
 	if cfg.DatabaseDSN != "" {
