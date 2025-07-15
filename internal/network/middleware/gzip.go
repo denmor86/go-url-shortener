@@ -24,6 +24,7 @@ var writerPool = sync.Pool{
 	},
 }
 
+// NewCompressWriter — создание пользовательского io.ReadCloser с поддержкой упаковки данных в gzip
 func NewCompressWriter(w http.ResponseWriter) *CompressWriter {
 	// Получаем Writer из пула (или создаём новый, если пул пуст)
 	zw := writerPool.Get().(*gzip.Writer)
@@ -37,12 +38,12 @@ func NewCompressWriter(w http.ResponseWriter) *CompressWriter {
 	}
 }
 
-// Header — получение заголовка из пользовательского io.ResponseWriter
+// Header — получение заголовка из пользовательского http.ResponseWriter
 func (c *CompressWriter) Header() http.Header {
 	return c.w.Header()
 }
 
-// Write — запись в пользовательский io.ResponseWriter
+// Write — запись в пользовательский http.ResponseWriter
 func (c *CompressWriter) Write(p []byte) (int, error) {
 	contentType := c.w.Header().Get("Content-Type")
 	switch {
@@ -55,7 +56,7 @@ func (c *CompressWriter) Write(p []byte) (int, error) {
 	}
 }
 
-// WriteHeader — запись заголовка в пользовательском io.ResponseWriter
+// WriteHeader — запись заголовка в пользовательском http.ResponseWriter
 func (c *CompressWriter) WriteHeader(statusCode int) {
 	if statusCode < http.StatusMultipleChoices {
 		c.w.Header().Set("Content-Encoding", "gzip")
@@ -63,7 +64,7 @@ func (c *CompressWriter) WriteHeader(statusCode int) {
 	c.w.WriteHeader(statusCode)
 }
 
-// Close — закрытие пользовательского io.ResponseWriter
+// Close — закрытие пользовательского http.ResponseWriter
 func (c *CompressWriter) Close() error {
 	err := c.zw.Close()
 
@@ -80,7 +81,7 @@ type CompressReader struct {
 	zr *gzip.Reader
 }
 
-// NewCompressReader — создание пользовательского io.ReadCloser с поддержкой упаковки данных в gzip
+// NewCompressReader — создание пользовательского io.ReadCloser с поддержкой распаковки данных из gzip
 func NewCompressReader(r io.ReadCloser) (*CompressReader, error) {
 	zr, err := gzip.NewReader(r)
 	if err != nil {

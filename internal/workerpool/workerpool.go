@@ -7,9 +7,10 @@ import (
 	"sync/atomic"
 )
 
+// Внутренние константы воркера
 const (
-	// DefaultJobChanSize значение по-умолчанию размера канала  для воркера
-	DefaultJobChanSize = 16
+	// defaultJobChanSize значение по-умолчанию размера канала  для воркера
+	defaultJobChanSize = 16
 )
 
 // Job - интерфейс задачи
@@ -31,7 +32,7 @@ type WorkerPool struct {
 func NewWorkerPool(count int) *WorkerPool {
 	return &WorkerPool{
 		countWorkers: count,
-		jobsChan:     make(chan Job, DefaultJobChanSize),
+		jobsChan:     make(chan Job, defaultJobChanSize),
 		doneChan:     make(chan struct{}),
 	}
 }

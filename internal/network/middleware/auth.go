@@ -12,9 +12,10 @@ import (
 	"github.com/denmor86/go-url-shortener/internal/usecase"
 )
 
+// Внутренние константы middelware
 const (
-	// TokenCookie имя ключа для UUID пользователя в JWT токене
-	TokenCookie = "user-token"
+	// tokenCookie имя ключа для UUID пользователя в JWT токене
+	tokenCookie = "user-token"
 )
 
 // Authorization - модель middelware для авторизации пользователя
@@ -29,7 +30,7 @@ func NewAuthorization(cfg config.Config) *Authorization {
 
 // CheckCookie - метод проверки Cookie. Проводит валидацию токена и извлекает UUID пользователя
 func CheckCookie(secret []byte, r *http.Request) (string, error) {
-	tokenCookie, err := r.Cookie(TokenCookie)
+	tokenCookie, err := r.Cookie(tokenCookie)
 	if err != nil {
 		// в запросе нет cookie
 		return "", fmt.Errorf("the request does not contain cookies")
@@ -76,7 +77,7 @@ func (auth *Authorization) CookieHandle(h http.Handler) http.Handler {
 // AuthHandle — middleware-аутентификация для входящих HTTP-запросов.
 func (auth *Authorization) AuthHandle(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if _, err := r.Cookie(TokenCookie); err != nil {
+		if _, err := r.Cookie(tokenCookie); err != nil {
 			// в запросе нет cookie, создаем новую
 			userID := uuid.New().String()
 

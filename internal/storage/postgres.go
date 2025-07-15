@@ -41,6 +41,7 @@ type DatabaseStorage struct {
 	DSN    string          // строка подключения БД
 }
 
+// Используемые SQL запросы
 const (
 	// CheckExist - SQL запрос для проверки наличи БД
 	CheckExist = `SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname =$1)`
