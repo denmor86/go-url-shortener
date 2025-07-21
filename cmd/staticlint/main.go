@@ -3,7 +3,6 @@ package main
 import (
 	"strings"
 
-	"github.com/denmor86/go-url-shortener/pkg/exitcheck"
 	"github.com/timakin/bodyclose/passes/bodyclose"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
@@ -30,6 +29,8 @@ import (
 	"golang.org/x/tools/go/analysis/passes/unreachable"
 	"honnef.co/go/tools/staticcheck"
 	"honnef.co/go/tools/stylecheck"
+
+	"github.com/denmor86/go-url-shortener/pkg/exitcheck"
 )
 
 func main() {
