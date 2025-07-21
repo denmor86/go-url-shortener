@@ -34,7 +34,7 @@ func (s *FileStorage) Close() error {
 	return s.File.Close()
 }
 
-// NewDatabaseStorage - метод создания хранилища данных в файловом кэше
+// NewFileStorage - метод создания хранилища данных в файловом кэше
 func NewFileStorage() *FileStorage {
 	return &FileStorage{Cache: *NewMemStorage(), File: nil, Writer: nil}
 }

@@ -46,7 +46,7 @@ type ResponseItem struct {
 	URL string `json:"short_url"`      // короткий URL
 }
 
-// ResponseItem - модель ответа на запрос массива существующих у пользователя ссылок
+// ResponseURL - модель ответа на запрос массива существующих у пользователя ссылок
 type ResponseURL struct {
 	OriginalURL string `json:"original_url"` // оригинальный URL
 	ShortURL    string `json:"short_url"`    // короткий URL

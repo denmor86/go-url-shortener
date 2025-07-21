@@ -10,7 +10,7 @@ import (
 	"github.com/denmor86/go-url-shortener/internal/config"
 )
 
-// Модели записи в БД для таблицы с URL
+// TableRecord - модели записи в БД для таблицы с URL
 type TableRecord struct {
 	OriginalURL string // оригинальный URL, для которого был запрос на сокращение
 	ShortURL    string // сокращенный URL, сформированный короткий URL
