@@ -1,3 +1,4 @@
+// Package usecase предоставляет реализацию бизнес логики приложения
 package usecase
 
 import (

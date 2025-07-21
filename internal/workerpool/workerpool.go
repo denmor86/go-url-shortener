@@ -1,3 +1,4 @@
+// Package workerpool предоставляет функционал вокер пула
 package workerpool
 
 import (

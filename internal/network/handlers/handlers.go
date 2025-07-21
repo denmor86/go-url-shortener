@@ -1,3 +1,4 @@
+// Package handlers предоставляет описание обработчиков сетевых сообщений
 package handlers
 
 import (

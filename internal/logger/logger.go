@@ -1,3 +1,4 @@
+// Package logger предоставляет функциональность логирования событий с испрользованием пакета "go.uber.org/zap"
 package logger
 
 import (

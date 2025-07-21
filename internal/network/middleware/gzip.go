@@ -1,3 +1,4 @@
+// Package middleware предоставляет впомогательные middleware методы для поддержки сетевого взаимодействия
 package middleware
 
 import (
