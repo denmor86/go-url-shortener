@@ -1,12 +1,15 @@
 package router
 
 import (
-	"github.com/denmor86/go-url-shortener.git/internal/network/handlers"
-	"github.com/denmor86/go-url-shortener.git/internal/network/middleware"
-	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+
+	"github.com/denmor86/go-url-shortener/internal/network/handlers"
+	"github.com/denmor86/go-url-shortener/internal/network/middleware"
+	"github.com/denmor86/go-url-shortener/internal/usecase"
 )
 
+// HandleRouter - метод формирования обработки запросов из внешнего API
 func HandleRouter(use *usecase.Usecase) chi.Router {
 	auth := middleware.NewAuthorization(use.Config)
 	r := chi.NewRouter()
@@ -34,5 +37,8 @@ func HandleRouter(use *usecase.Usecase) chi.Router {
 			r.Get("/", handlers.PingStorage(use)) // GET /ping
 		})
 	})
+	if use.Config.UseDebug {
+		r.Mount("/debug", chiMiddleware.Profiler())
+	}
 	return r
 }

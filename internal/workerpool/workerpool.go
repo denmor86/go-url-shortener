@@ -7,31 +7,37 @@ import (
 	"sync/atomic"
 )
 
+// Внутренние константы воркера
 const (
-	DefaultJobChanSize = 16
+	// defaultJobChanSize значение по-умолчанию размера канала  для воркера
+	defaultJobChanSize = 16
 )
 
+// Job - интерфейс задачи
 type Job interface {
 	Do(ctx context.Context)
 }
 
+// WorkerPool - структура вокер пула
 type WorkerPool struct {
-	countWorkers int
-	jobsChan     chan Job
-	doneChan     chan struct{}
-	closed       atomic.Bool
+	countWorkers int           // количество воркеров
+	jobsChan     chan Job      // канал с задачами
+	doneChan     chan struct{} // канала управления
+	closed       atomic.Bool   // признак остановки пула
 	processOnce  sync.Once
 	wg           sync.WaitGroup
 }
 
+// NewWorkerPool - метод создания воркер пула
 func NewWorkerPool(count int) *WorkerPool {
 	return &WorkerPool{
 		countWorkers: count,
-		jobsChan:     make(chan Job, DefaultJobChanSize),
+		jobsChan:     make(chan Job, defaultJobChanSize),
 		doneChan:     make(chan struct{}),
 	}
 }
 
+// AddJob - метод добавления задачи в канал задач
 func (wp *WorkerPool) AddJob(job Job) error {
 	if wp.closed.Load() {
 		return fmt.Errorf("worker pool is closed")
@@ -42,6 +48,7 @@ func (wp *WorkerPool) AddJob(job Job) error {
 	return nil
 }
 
+// worker- метод управления воркером
 func (wp *WorkerPool) worker(ctx context.Context) {
 	defer wp.wg.Done()
 
@@ -59,6 +66,7 @@ func (wp *WorkerPool) worker(ctx context.Context) {
 	}
 }
 
+// Run - метод запуска воркера
 func (wp *WorkerPool) Run() {
 	if wp.closed.Load() {
 		return
@@ -80,6 +88,7 @@ func (wp *WorkerPool) Run() {
 	})
 }
 
+// Close - метод закрытия каналов воркера
 func (wp *WorkerPool) Close() error {
 	isCanceled := wp.closed.Swap(true)
 
@@ -91,6 +100,7 @@ func (wp *WorkerPool) Close() error {
 	return nil
 }
 
+// Wait - ожидание
 func (wp *WorkerPool) Wait() {
 	wp.wg.Wait()
 }

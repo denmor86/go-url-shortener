@@ -2,25 +2,36 @@ package middleware
 
 import (
 	"net/http"
+	"sync"
 	"time"
 
-	"github.com/denmor86/go-url-shortener.git/internal/logger"
+	"github.com/denmor86/go-url-shortener/internal/logger"
 )
 
 type (
-	// берём структуру для хранения сведений об ответе
+	// responseData - структура для хранения сведений об ответе
 	responseData struct {
 		status int
 		size   int
 	}
 
-	// добавляем реализацию http.ResponseWriter
+	// loggingResponseWriter - реализация пользовательского http.ResponseWriter
 	loggingResponseWriter struct {
-		http.ResponseWriter // встраиваем оригинальный http.ResponseWriter
-		responseData        *responseData
+		http.ResponseWriter               // оригинальный http.ResponseWriter
+		responseData        *responseData // сведения об ответе
 	}
 )
 
+var (
+	// loggingWriterPool - пул пользовательских http.ResponseWriter
+	loggingWriterPool = sync.Pool{
+		New: func() any {
+			return &loggingResponseWriter{}
+		},
+	}
+)
+
+// WriteHeader - метод пользовательской записи тела запроса
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	// записываем ответ, используя оригинальный http.ResponseWriter
 	size, err := r.ResponseWriter.Write(b)
@@ -28,6 +39,7 @@ func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	return size, err
 }
 
+// WriteHeader - метод пользовательской записи заголовка запроса
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	// записываем код статуса, используя оригинальный http.ResponseWriter
 	r.ResponseWriter.WriteHeader(statusCode)
@@ -44,12 +56,12 @@ func LogHandle(h http.Handler) http.Handler {
 			status: 0,
 			size:   0,
 		}
-		lw := loggingResponseWriter{
-			ResponseWriter: w, // встраиваем оригинальный http.ResponseWriter
-			responseData:   responseData,
-		}
+		// Получаем из пула
+		lw := loggingWriterPool.Get().(*loggingResponseWriter)
+		lw.ResponseWriter = w
+		lw.responseData = responseData
 
-		h.ServeHTTP(&lw, r)
+		h.ServeHTTP(lw, r)
 
 		duration := time.Since(start)
 
@@ -60,5 +72,8 @@ func LogHandle(h http.Handler) http.Handler {
 			"duration", duration,
 			"size", responseData.size,
 		)
+
+		// Возвращаем в пул
+		loggingWriterPool.Put(lw)
 	})
 }

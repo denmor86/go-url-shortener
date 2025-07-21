@@ -10,17 +10,29 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// Config - модель конфигурации приложения
 type Config struct {
-	ListenAddr      string        `env:"SERVER_ADDRESS"`
-	BaseURL         string        `env:"BASE_URL"`
-	ShortURLLen     int           `env:"MAX_URL_LEN" envDefault:"8"`
-	LogLevel        string        `env:"LOG_LEVEL" envDefault:"info"`
-	FileStoragePath string        `env:"FILE_STORAGE_PATH"`
-	DatabaseDSN     string        `env:"DATABASE_DSN"`
+	// ListenAddr - адрес сервера
+	ListenAddr string `env:"SERVER_ADDRESS"`
+	// BaseURL - базовый URL для формирования коротких ссылок
+	BaseURL string `env:"BASE_URL"`
+	// ShortURLLen - длинна сгенерированных коротких ссылок
+	ShortURLLen int `env:"MAX_URL_LEN" envDefault:"8"`
+	// LogLevel - уровени логирования
+	LogLevel string `env:"LOG_LEVEL" envDefault:"info"`
+	// FileStoragePath - путь к файловому хранилищу
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	// DatabaseDSN - строка подключения к БД
+	DatabaseDSN string `env:"DATABASE_DSN"`
+	// DatabaseTimeout - таймаут запросов к БД
 	DatabaseTimeout time.Duration `env:"DATABASE_TIMEOUT"`
-	JWTSecret       string        `env:"JWT_SECRET"`
+	// JWTSecret - секрет для JWT токена
+	JWTSecret string `env:"JWT_SECRET"`
+	// UseDebug - признак включения отладочного режима (профилирование)
+	UseDebug bool
 }
 
+// Настройки по-умолчанию
 const (
 	DefaultListenServer    = "localhost:8080"
 	DefaultBaseURL         = "http://" + DefaultListenServer
@@ -30,8 +42,10 @@ const (
 	DefaultDatabaseDSN     = ""
 	DefaultDatabaseTimeout = time.Duration(5)
 	DefaultJWTSecret       = "secret"
+	DefaultUseDebug        = false
 )
 
+// NewConfig - метод формирования конфигурации приложения. Используются переменные окружения и флаги запуска приложения.
 func NewConfig() Config {
 
 	pflag.StringP("server", "a", DefaultListenServer, "Server listen address in a form host:port.")
@@ -42,6 +56,7 @@ func NewConfig() Config {
 	pflag.StringP("db_dsn", "d", DefaultDatabaseDSN, "Database DSN")
 	pflag.IntP("db_timeout", "t", int(DefaultDatabaseTimeout.Abs()), "Database timeout connection, seconds.")
 	pflag.StringP("jwt_secret", "s", DefaultJWTSecret, "Secret to JWT")
+	pflag.BoolP("debug", "m", DefaultUseDebug, "Debug mode")
 
 	pflag.Parse()
 
@@ -90,9 +105,15 @@ func NewConfig() Config {
 			config.JWTSecret = secret
 		}
 	}
+
+	if debug, err := pflag.CommandLine.GetBool("debug"); err == nil {
+		config.UseDebug = debug
+	}
+
 	return config
 }
 
+// DefaultConfig - метод формирования конфигурации по-умолчанию
 func DefaultConfig() Config {
 	return Config{
 		ListenAddr:      DefaultListenServer,
@@ -101,5 +122,7 @@ func DefaultConfig() Config {
 		LogLevel:        DefaultLogLevel,
 		FileStoragePath: "",
 		DatabaseDSN:     DefaultDatabaseDSN,
+		JWTSecret:       DefaultJWTSecret,
+		UseDebug:        true,
 	}
 }

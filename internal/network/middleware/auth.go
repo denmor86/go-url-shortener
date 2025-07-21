@@ -5,26 +5,32 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/denmor86/go-url-shortener.git/internal/config"
-	"github.com/denmor86/go-url-shortener.git/internal/helpers"
-	"github.com/denmor86/go-url-shortener.git/internal/usecase"
 	"github.com/google/uuid"
+
+	"github.com/denmor86/go-url-shortener/internal/config"
+	"github.com/denmor86/go-url-shortener/internal/helpers"
+	"github.com/denmor86/go-url-shortener/internal/usecase"
 )
 
+// Внутренние константы middelware
 const (
-	TokenCookie = "user-token"
+	// tokenCookie имя ключа для UUID пользователя в JWT токене
+	tokenCookie = "user-token"
 )
 
+// Authorization - модель middelware для авторизации пользователя
 type Authorization struct {
-	Secret []byte
+	Secret []byte // секрет для JWT
 }
 
+// NewAuthorization - метод формирования объекта middelware для авторизации пользователя
 func NewAuthorization(cfg config.Config) *Authorization {
 	return &Authorization{Secret: []byte(cfg.JWTSecret)}
 }
 
+// CheckCookie - метод проверки Cookie. Проводит валидацию токена и извлекает UUID пользователя
 func CheckCookie(secret []byte, r *http.Request) (string, error) {
-	tokenCookie, err := r.Cookie(TokenCookie)
+	tokenCookie, err := r.Cookie(tokenCookie)
 	if err != nil {
 		// в запросе нет cookie
 		return "", fmt.Errorf("the request does not contain cookies")
@@ -71,7 +77,7 @@ func (auth *Authorization) CookieHandle(h http.Handler) http.Handler {
 // AuthHandle — middleware-аутентификация для входящих HTTP-запросов.
 func (auth *Authorization) AuthHandle(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if _, err := r.Cookie(TokenCookie); err != nil {
+		if _, err := r.Cookie(tokenCookie); err != nil {
 			// в запросе нет cookie, создаем новую
 			userID := uuid.New().String()
 

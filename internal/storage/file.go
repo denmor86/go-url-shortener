@@ -8,32 +8,37 @@ import (
 	"os"
 	"sync"
 
-	"github.com/denmor86/go-url-shortener.git/internal/logger"
+	"github.com/denmor86/go-url-shortener/internal/logger"
 )
 
+// URLInfo - структура данных в файловом кэше
 type URLInfo struct {
-	ID          uint   `json:"id"`
-	OriginalURL string `json:"original_url"`
-	ShortURL    string `json:"short_url"`
-	UserID      string `json:"user_uuid"`
-	IsDeleted   bool   `json:"is_deleted"`
+	ID          uint   `json:"id"`           // идентификатор записи
+	OriginalURL string `json:"original_url"` // оригинальный URL
+	ShortURL    string `json:"short_url"`    // короткая ссылка
+	UserID      string `json:"user_uuid"`    // идетификатор пользователя
+	IsDeleted   bool   `json:"is_deleted"`   // признак необходимости удаления записи
 }
 
+// FileStorage - хранилище данных в файловом кэше
 type FileStorage struct {
-	Cache  MemStorage
-	File   *os.File
-	Writer *bufio.Writer
-	sync.RWMutex
+	Cache        MemStorage    // кэш в оперативной памяти
+	File         *os.File      // указатель на файловый дескриптор
+	Writer       *bufio.Writer // указатель на интерфейс записи данных
+	sync.RWMutex               // мьютекс для синхронизации
 }
 
+// Close - метод закрытия файлового кэша
 func (s *FileStorage) Close() error {
 	return s.File.Close()
 }
 
+// NewDatabaseStorage - метод создания хранилища данных в файловом кэше
 func NewFileStorage() *FileStorage {
 	return &FileStorage{Cache: *NewMemStorage(), File: nil, Writer: nil}
 }
 
+// Initialize - метод инициализации хранилища(создание и открытие файлового кэша)
 func (s *FileStorage) Initialize(filepath string) error {
 	if s.File != nil {
 		logger.Warn("File storage already initialized")
@@ -65,6 +70,7 @@ func (s *FileStorage) Initialize(filepath string) error {
 	return nil
 }
 
+// AddRecord - метод добавления записи в файловый кэш
 func (s *FileStorage) AddRecord(ctx context.Context, record TableRecord) error {
 	s.Lock()
 	s.Cache.AddRecord(ctx, record)
@@ -91,6 +97,8 @@ func (s *FileStorage) AddRecord(ctx context.Context, record TableRecord) error {
 	s.Unlock()
 	return nil
 }
+
+// AddRecords - метод добавления массива записей в файловый кэш
 func (s *FileStorage) AddRecords(ctx context.Context, records []TableRecord) error {
 	for _, rec := range records {
 		if err := s.AddRecord(ctx, rec); err != nil {
@@ -99,6 +107,8 @@ func (s *FileStorage) AddRecords(ctx context.Context, records []TableRecord) err
 	}
 	return nil
 }
+
+// GetRecord - метод получения записи по короткой ссылке
 func (s *FileStorage) GetRecord(ctx context.Context, shortURL string) (string, error) {
 	s.Lock()
 	longURL, err := s.Cache.GetRecord(ctx, shortURL)
@@ -109,6 +119,7 @@ func (s *FileStorage) GetRecord(ctx context.Context, shortURL string) (string, e
 	return "", fmt.Errorf("short url not found: %s", shortURL)
 }
 
+// GetUserRecords - метод получения массива записей пользователя из файлового кэша
 func (s *FileStorage) GetUserRecords(ctx context.Context, userID string) ([]TableRecord, error) {
 	var records []TableRecord
 	s.Lock()
@@ -121,6 +132,7 @@ func (s *FileStorage) GetUserRecords(ctx context.Context, userID string) ([]Tabl
 	return records, nil
 }
 
+// DeleteURLs - метод отметки массива записей пользователя на удаление
 func (s *FileStorage) DeleteURLs(ctx context.Context, userID string, shortURLS []string) error {
 	s.Lock()
 	for _, shortURL := range shortURLS {
@@ -137,6 +149,7 @@ func (s *FileStorage) DeleteURLs(ctx context.Context, userID string, shortURLS [
 	return nil
 }
 
+// Ping - метод проверки наличия открытого файла с кэшем данных
 func (s *FileStorage) Ping(ctx context.Context) error {
 	if s.File != nil {
 		return nil

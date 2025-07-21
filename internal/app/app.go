@@ -10,20 +10,23 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/denmor86/go-url-shortener.git/internal/config"
-	"github.com/denmor86/go-url-shortener.git/internal/logger"
-	"github.com/denmor86/go-url-shortener.git/internal/network/router"
-	"github.com/denmor86/go-url-shortener.git/internal/storage"
-	"github.com/denmor86/go-url-shortener.git/internal/usecase"
-	"github.com/denmor86/go-url-shortener.git/internal/workerpool"
 	"github.com/pkg/errors"
+
+	"github.com/denmor86/go-url-shortener/internal/config"
+	"github.com/denmor86/go-url-shortener/internal/logger"
+	"github.com/denmor86/go-url-shortener/internal/network/router"
+	"github.com/denmor86/go-url-shortener/internal/storage"
+	"github.com/denmor86/go-url-shortener/internal/usecase"
+	"github.com/denmor86/go-url-shortener/internal/workerpool"
 )
 
+// App - модель данных приложения
 type App struct {
 	Config  config.Config
 	Storage storage.IStorage
 }
 
+// Run - метод иницилизации приложения и запуска сервера обработки сообщений
 func (a *App) Run() {
 	if err := logger.Initialize(a.Config.LogLevel); err != nil {
 		panic(fmt.Sprintf("can't initialize logger: %s ", errors.Cause(err).Error()))

@@ -1,43 +1,23 @@
 package helpers
 
 import (
-	"crypto/md5"
-	"encoding/base64"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 )
 
-const JWTExpire = time.Hour * 3
-
-func MakeShortURL(urlValue string, size int) string {
-
-	data := fmt.Sprintf("%s%d", urlValue, time.Now().UnixNano())
-
-	hash := md5.Sum([]byte(data))
-
-	return base64.URLEncoding.EncodeToString(hash[:])[:size]
-}
-
-func MakeURL(baseURL, shortURL string) string {
-
-	var fullURL string
-	fullURL = baseURL
-	if !strings.HasSuffix(fullURL, "/") {
-		fullURL += "/"
-	}
-	fullURL += shortURL
-	return fullURL
-}
-
+// JWTClaims описание записей в токене JWT
 type JWTClaims struct {
 	jwt.RegisteredClaims
 	UserID string
 }
 
+// BuildJWT - метод для формирования JWT токена с добавлением UUID пользователя с использованием секрета
 func BuildJWT(userID string, secret []byte) (string, error) {
+	if len(secret) == 0 {
+		return "", fmt.Errorf("empty secret")
+	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(JWTExpire)),
@@ -53,6 +33,7 @@ func BuildJWT(userID string, secret []byte) (string, error) {
 	return tokenString, nil
 }
 
+// ParseJWT - метод разбора JWT токена с проверкой секрета и возвратом кастомных записей
 func ParseJWT(tokenString string, secret []byte) (*JWTClaims, error) {
 	claims := &JWTClaims{}
 
