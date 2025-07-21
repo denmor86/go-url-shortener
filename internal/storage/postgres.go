@@ -217,13 +217,13 @@ func (s *DatabaseStorage) GetUserRecords(ctx context.Context, userID string) ([]
 	}
 	for rows.Next() {
 		var record TableRecord
-		err := rows.Scan(&record.UserID, &record.OriginalURL, &record.ShortURL)
+		err = rows.Scan(&record.UserID, &record.OriginalURL, &record.ShortURL)
 		if err != nil {
 			return records, fmt.Errorf("failed scan  user record: %w", err)
 		}
 		records = append(records, record)
 	}
-	return records, err
+	return records, nil
 }
 
 // DeleteURLs - метод отметки массива записей пользователя на удаление

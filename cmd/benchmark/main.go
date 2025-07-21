@@ -63,18 +63,18 @@ func main() {
 		}
 		// запрашиваем создание сокращенный URL по каждому полному
 		for i := 1; i <= batchSize; i++ {
-			URL, err := sendPostURL(client, address, port, random.URL().String())
-			if err != nil {
-				log.Fatalf("Send post URL failed: %v\n", err)
+			URL, sendError := sendPostURL(client, address, port, random.URL().String())
+			if sendError != nil {
+				log.Fatalf("Send post URL failed: %v\n", sendError)
 			}
 			fmt.Printf("Base URL: %s\n", URL)
 		}
 
 		// генерируем массив и отправляем его
 		batch := GenerateURLItems(batchSize)
-		batchResponse, err := sendBatch(client, address, port, batch)
-		if err != nil {
-			log.Fatalf("Send batch failed: %v", err)
+		batchResponse, sendError := sendBatch(client, address, port, batch)
+		if sendError != nil {
+			log.Fatalf("Send batch failed: %v", sendError)
 		}
 		// разбираем ответ
 		urls, err := parseBatchResponse(batchResponse)
@@ -95,16 +95,16 @@ func main() {
 		}
 
 		// отправляем запрос на получение всех записей
-		resp, err := sendGetURLS(client, address, port)
-		if err != nil {
-			log.Fatalf("Send get URLs failed: %v", err)
+		resp, sendError := sendGetURLS(client, address, port)
+		if sendError != nil {
+			log.Fatalf("Send get URLs failed: %v", sendError)
 		}
 		fmt.Printf("URLs: %s\n", resp)
 
 		// кидаем запрос на удаление
-		_, err = sendBachDelete(client, address, port, deleteItems)
-		if err != nil {
-			log.Fatalf("Send batch delete failed: %v", err)
+		_, sendError = sendBachDelete(client, address, port, deleteItems)
+		if sendError != nil {
+			log.Fatalf("Send batch delete failed: %v", sendError)
 		}
 		fmt.Printf("waiting... \n")
 		time.Sleep(time.Second)
