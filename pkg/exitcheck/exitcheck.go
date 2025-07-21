@@ -7,12 +7,14 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
+// Analyzer -  статический анализатор проверяющий вызов os.Exit() в функции main пакета main
 var Analyzer = &analysis.Analyzer{
 	Name: "exitcheck",
 	Doc:  "check for os.Exit() calls in main function of main package",
 	Run:  run,
 }
 
+// run -  метод запуска анализа наличия вызова os.Exit() в функции main пакета main
 func run(pass *analysis.Pass) (any, error) {
 	for _, file := range pass.Files {
 		// пропускаем все не main пакеты
