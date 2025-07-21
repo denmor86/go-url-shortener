@@ -73,6 +73,8 @@ func (s *FileStorage) Initialize(filepath string) error {
 // AddRecord - метод добавления записи в файловый кэш
 func (s *FileStorage) AddRecord(ctx context.Context, record TableRecord) error {
 	s.Lock()
+	defer s.Unlock()
+
 	s.Cache.AddRecord(ctx, record)
 
 	info := URLInfo{ID: uint(s.Cache.Size()),
@@ -93,9 +95,7 @@ func (s *FileStorage) AddRecord(ctx context.Context, record TableRecord) error {
 		logger.Warn("Invalid write separator:", err)
 	}
 	// записываем буфер в файл
-	s.Writer.Flush()
-	s.Unlock()
-	return nil
+	return s.Writer.Flush()
 }
 
 // AddRecords - метод добавления массива записей в файловый кэш
@@ -110,9 +110,10 @@ func (s *FileStorage) AddRecords(ctx context.Context, records []TableRecord) err
 
 // GetRecord - метод получения записи по короткой ссылке
 func (s *FileStorage) GetRecord(ctx context.Context, shortURL string) (string, error) {
-	s.Lock()
+	s.RLock()
+	defer s.RUnlock()
+
 	longURL, err := s.Cache.GetRecord(ctx, shortURL)
-	s.Unlock()
 	if err == nil {
 		return longURL, nil
 	}
@@ -121,20 +122,23 @@ func (s *FileStorage) GetRecord(ctx context.Context, shortURL string) (string, e
 
 // GetUserRecords - метод получения массива записей пользователя из файлового кэша
 func (s *FileStorage) GetUserRecords(ctx context.Context, userID string) ([]TableRecord, error) {
+	s.RLock()
+	defer s.RUnlock()
+
 	var records []TableRecord
-	s.Lock()
 	for _, record := range s.Cache.Urls {
 		if record.UserID == userID {
 			records = append(records, record)
 		}
 	}
-	s.Unlock()
 	return records, nil
 }
 
 // DeleteURLs - метод отметки массива записей пользователя на удаление
 func (s *FileStorage) DeleteURLs(ctx context.Context, userID string, shortURLS []string) error {
 	s.Lock()
+	defer s.Unlock()
+
 	for _, shortURL := range shortURLS {
 		record, exist := s.Cache.Urls[shortURL]
 		if exist && record.UserID == userID {
@@ -145,7 +149,6 @@ func (s *FileStorage) DeleteURLs(ctx context.Context, userID string, shortURLS [
 				IsDeleted:   true}
 		}
 	}
-	s.Unlock()
 	return nil
 }
 
