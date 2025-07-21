@@ -53,7 +53,7 @@ func run(pass *analysis.Pass) (any, error) {
 				}
 
 				if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "os" && sel.Sel.Name == "Exit" {
-					pass.Reportf(call.Pos(), "os.Exit() call in main function of main package")
+					pass.Reportf(call.Pos(), "os.Exit call in main function of main package")
 				}
 				return true
 			})
