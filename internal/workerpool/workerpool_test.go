@@ -85,25 +85,34 @@ func TestWorkerPool_Run(t *testing.T) {
 
 	t.Run("cancel", func(t *testing.T) {
 		wp := NewWorkerPool(1)
-		jobDone := make(chan struct{})
+		jobStarted := make(chan struct{})
+		ctxCanceled := make(chan struct{})
 
 		job := &MockJob{
 			doFunc: func(ctx context.Context) {
-				<-ctx.Done() // ждем отмены контекста
-				close(jobDone)
+				close(jobStarted)
+				<-ctx.Done()
+				close(ctxCanceled)
 			},
 		}
 
 		wp.Run()
 		require.NoError(t, wp.AddJob(job))
 
+		// Ожидаем запуск задачи
+		select {
+		case <-jobStarted:
+		case <-time.After(100 * time.Millisecond):
+			t.Fatal("start timeout")
+		}
 		// Закрываем пул
 		require.NoError(t, wp.Close())
 
+		// Проверяем
 		select {
-		case <-jobDone:
-		case <-time.After(100 * time.Millisecond):
-			t.Fatal("context is cancel")
+		case <-ctxCanceled:
+		case <-time.After(500 * time.Millisecond):
+			t.Fatal("cancel timeout")
 		}
 	})
 }
