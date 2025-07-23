@@ -41,9 +41,9 @@ func TestMakeShortURL(t *testing.T) {
 			errText string
 		}{
 			{"Empty URL", "", 8, "url cannot be empty"},
-			{"Zero size", "https://example.com", 0, "size must be positive, got 0"},
-			{"Negative size", "https://example.com", -1, "size must be positive, got -1"},
-			{"Size too large", "https://example.com", 25, "size too large, maximum is 24, got 25"},
+			{"Zero size", "https://example.com", 0, "invalid size: size must be positive, got 0"},
+			{"Negative size", "https://example.com", -1, "invalid size: size must be positive, got -1"},
+			{"Size too large", "https://example.com", 25, "invalid size: size too large, maximum is 24, got 25"},
 		}
 
 		for _, tc := range testCases {

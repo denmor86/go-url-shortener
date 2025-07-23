@@ -1,3 +1,4 @@
+// Package middleware предоставляет впомогательные middleware методы для поддержки сетевого взаимодействия
 package middleware
 
 import (
@@ -43,17 +44,31 @@ func (c *CompressWriter) Header() http.Header {
 	return c.w.Header()
 }
 
+// compressibleTypes типы контента с поддержкой сжатия
+var compressibleTypes = []string{
+	"application/json",
+	"text/html",
+	"text/plain",
+}
+
+// shouldCompress - проверка необходимости сжатия контента
+func shouldCompress(contentType string) bool {
+	for _, t := range compressibleTypes {
+		if strings.Contains(contentType, t) {
+			return true
+		}
+	}
+	return false
+}
+
 // Write — запись в пользовательский http.ResponseWriter
 func (c *CompressWriter) Write(p []byte) (int, error) {
 	contentType := c.w.Header().Get("Content-Type")
-	switch {
-	case strings.Contains(contentType, "application/json"),
-		strings.Contains(contentType, "text/html"),
-		strings.Contains(contentType, "text/plain"):
+	if shouldCompress(contentType) {
 		return c.zw.Write(p)
-	default:
-		return c.w.Write(p)
 	}
+	return c.w.Write(p)
+
 }
 
 // WriteHeader — запись заголовка в пользовательском http.ResponseWriter

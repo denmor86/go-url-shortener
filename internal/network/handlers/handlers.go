@@ -1,3 +1,4 @@
+// Package handlers предоставляет описание обработчиков сетевых сообщений
 package handlers
 
 import (
@@ -13,7 +14,7 @@ import (
 func EncondeURL(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if userID := r.Context().Value(usecase.UserIDContextKey); userID != nil {
-			shortURL, err := u.EncondeURL(r.Context(), r.Body, userID.(string))
+			shortURL, err := u.EncodeURL(r.Context(), r.Body, userID.(string))
 
 			w.Header().Set("content-type", "text/plain")
 
@@ -67,7 +68,7 @@ func DecodeURL(u *usecase.Usecase) http.HandlerFunc {
 func EncondeURLJson(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if userID := r.Context().Value(usecase.UserIDContextKey); userID != nil {
-			responce, err := u.EncondeURLJson(r.Context(), r.Body, userID.(string))
+			responce, err := u.EncodeURLJson(r.Context(), r.Body, userID.(string))
 
 			w.Header().Set("Content-Type", "application/json")
 
@@ -93,7 +94,7 @@ func EncondeURLJson(u *usecase.Usecase) http.HandlerFunc {
 func EncondeURLJsonBatch(u *usecase.Usecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if userID := r.Context().Value(usecase.UserIDContextKey); userID != nil {
-			responce, err := u.EncondeURLJsonBatch(r.Context(), r.Body, userID.(string))
+			responce, err := u.EncodeURLJsonBatch(r.Context(), r.Body, userID.(string))
 			if err != nil {
 				http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 				return

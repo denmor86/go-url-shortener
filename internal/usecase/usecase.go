@@ -1,3 +1,4 @@
+// Package usecase предоставляет реализацию бизнес логики приложения
 package usecase
 
 import (
@@ -45,7 +46,7 @@ type ResponseItem struct {
 	URL string `json:"short_url"`      // короткий URL
 }
 
-// ResponseItem - модель ответа на запрос массива существующих у пользователя ссылок
+// ResponseURL - модель ответа на запрос массива существующих у пользователя ссылок
 type ResponseURL struct {
 	OriginalURL string `json:"original_url"` // оригинальный URL
 	ShortURL    string `json:"short_url"`    // короткий URL
@@ -85,8 +86,8 @@ func NewUsecase(cfg config.Config, storage storage.IStorage, workerpool *workerp
 	return &Usecase{Config: cfg, Storage: storage, WorkerPool: workerpool}
 }
 
-// EncondeURL - метод формирования короткой ссылки на основе тела запроса в текстовом формате
-func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader, userID string) ([]byte, error) {
+// EncodeURL - метод формирования короткой ссылки на основе тела запроса в текстовом формате
+func (u *Usecase) EncodeURL(ctx context.Context, reader io.Reader, userID string) ([]byte, error) {
 
 	data, err := io.ReadAll(reader)
 	if err != nil {
@@ -116,8 +117,8 @@ func (u *Usecase) EncondeURL(ctx context.Context, reader io.Reader, userID strin
 	return nil, fmt.Errorf("error storage URL: %w", err)
 }
 
-// EncondeURLJson - метод формирования короткой ссылки на основе тела запроса в JSON формате
-func (u *Usecase) EncondeURLJson(ctx context.Context, reader io.Reader, userID string) ([]byte, error) {
+// EncodeURLJson - метод формирования короткой ссылки на основе тела запроса в JSON формате
+func (u *Usecase) EncodeURLJson(ctx context.Context, reader io.Reader, userID string) ([]byte, error) {
 
 	var buf bytes.Buffer
 	// читаем тело запроса
@@ -130,10 +131,10 @@ func (u *Usecase) EncondeURLJson(ctx context.Context, reader io.Reader, userID s
 		return nil, fmt.Errorf("error unmarshal body: %w", err)
 	}
 
-	shortURL, err := u.EncondeURL(ctx, strings.NewReader(request.URL), userID)
+	shortURL, encodeErr := u.EncodeURL(ctx, strings.NewReader(request.URL), userID)
 	var responce Response
 	// нет ошибок
-	if err == nil {
+	if encodeErr == nil {
 		responce.Result = string(shortURL)
 		resp, err := json.Marshal(responce)
 		if err != nil {
@@ -142,7 +143,7 @@ func (u *Usecase) EncondeURLJson(ctx context.Context, reader io.Reader, userID s
 		return resp, nil
 	}
 	// ошибка наличия не уникального URL
-	if errors.Is(err, ErrUniqueViolation) {
+	if errors.Is(encodeErr, ErrUniqueViolation) {
 		responce.Result = string(shortURL)
 		resp, err := json.Marshal(responce)
 		if err != nil {
@@ -150,11 +151,11 @@ func (u *Usecase) EncondeURLJson(ctx context.Context, reader io.Reader, userID s
 		}
 		return resp, ErrUniqueViolation
 	}
-	return nil, fmt.Errorf("error encode URL: %w", err)
+	return nil, fmt.Errorf("error encode URL: %w", encodeErr)
 }
 
-// EncondeURLJsonBatch - метод формирования массива коротких ссылок на основе тела запроса в JSON формате
-func (u *Usecase) EncondeURLJsonBatch(ctx context.Context, reader io.Reader, userID string) ([]byte, error) {
+// EncodeURLJsonBatch - метод формирования массива коротких ссылок на основе тела запроса в JSON формате
+func (u *Usecase) EncodeURLJsonBatch(ctx context.Context, reader io.Reader, userID string) ([]byte, error) {
 
 	var buf bytes.Buffer
 	// читаем тело запроса
@@ -177,15 +178,15 @@ func (u *Usecase) EncondeURLJsonBatch(ctx context.Context, reader io.Reader, use
 		if item.ID == "" || item.URL == "" {
 			return nil, fmt.Errorf("invalid request item: (ID: %s, URL: %s", item.ID, item.URL)
 		}
-		shortURL, err := helpers.MakeShortURL(item.URL, u.Config.ShortURLLen)
-		if err != nil {
-			return nil, fmt.Errorf("error make short URL: %w", err)
+		shortURL, makeError := helpers.MakeShortURL(item.URL, u.Config.ShortURLLen)
+		if makeError != nil {
+			return nil, fmt.Errorf("error make short URL: %w", makeError)
 		}
 		items = append(items, storage.TableRecord{ShortURL: shortURL, OriginalURL: item.URL, UserID: userID})
 		responseItems = append(responseItems, ResponseItem{ID: item.ID, URL: helpers.MakeURL(u.Config.BaseURL, shortURL)})
 	}
 
-	if err := u.Storage.AddRecords(ctx, items); err != nil {
+	if err = u.Storage.AddRecords(ctx, items); err != nil {
 		return nil, fmt.Errorf("error storage urls: %w", err)
 	}
 

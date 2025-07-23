@@ -1,9 +1,11 @@
+// Package logger предоставляет функциональность логирования событий с испрользованием пакета "go.uber.org/zap"
 package logger
 
 import (
 	"sync"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var (
@@ -13,23 +15,30 @@ var (
 
 // Initialize - инициализирует синглтон логера с необходимым уровнем логирования.
 func Initialize(level string) error {
-	// преобразуем текстовый уровень логирования в zap.AtomicLevel
-	lvl, err := zap.ParseAtomicLevel(level)
-	if err != nil {
-		return err
-	}
-	// создаём новую конфигурацию логера
-	cfg := zap.NewProductionConfig()
-	// устанавливаем уровень
-	cfg.Level = lvl
-	// создаём логер на основе конфигурации
-	logger, err := cfg.Build()
-	if err != nil {
-		return err
-	}
-	// устанавливаем синглтон
-	instance = logger.Sugar()
-	return nil
+	var initErr error
+	once.Do(func() {
+		// преобразуем текстовый уровень логирования в zap.AtomicLevel
+		lvl, err := zap.ParseAtomicLevel(level)
+		if err != nil {
+			initErr = err
+			return
+		}
+		// создаём новую конфигурацию логера
+		cfg := zap.NewProductionConfig()
+		// устанавливаем уровень
+		cfg.Level = lvl
+		cfg.EncoderConfig.TimeKey = "time"
+		cfg.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05")
+		// создаём логер на основе конфигурации
+		logger, err := cfg.Build()
+		if err != nil {
+			initErr = err
+			return
+		}
+		// устанавливаем синглтон
+		instance = logger.Sugar()
+	})
+	return initErr
 }
 
 // Get - метод получения объекта логгера из синглтона

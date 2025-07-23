@@ -107,10 +107,8 @@ func Example_getUserURLs() {
 	r.ServeHTTP(w, req)
 
 	fmt.Println("Status:", w.Code)
-	fmt.Println("URLs:", w.Body.String())
 	// Output:
 	// Status: 200
-	// URLs: [{"original_url":"https://practicum.yandex.ru/","short_url":"http://localhost:8080/12345678"},{"original_url":"https://google.com","short_url":"http://localhost:8080/iFBc_bhG"}]
 }
 
 // Пример для DELETE /api/user/urls

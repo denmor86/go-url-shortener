@@ -1,3 +1,4 @@
+// Package storage предоставляет интефейсы и их реализацию для внутреннего хранения данных
 package storage
 
 import (
@@ -9,23 +10,33 @@ import (
 	"github.com/denmor86/go-url-shortener/internal/config"
 )
 
-// Модели записи в БД для таблицы с URL
+// TableRecord - модели записи в БД для таблицы с URL
 type TableRecord struct {
-	OriginalURL string // оригинальный URL
-	ShortURL    string // сокращенный URL
-	UserID      string // идентификатор пользователя
-	IsDeleted   bool   // признак необходимости удаления из хранилища
+	OriginalURL string // оригинальный URL, для которого был запрос на сокращение
+	ShortURL    string // сокращенный URL, сформированный короткий URL
+	UserID      string // идентификатор пользователя, UUID пользователя из запроса
+	IsDeleted   bool   // признак необходимости удаления записи из хранилища, предполагается, что будет отдельный сервис который будет физически удалять записи из БД
 }
 
-// Модели интерфейсов для работы с хранилищем данных
-type IStorage interface {
-	AddRecord(context.Context, TableRecord) error
-	AddRecords(context.Context, []TableRecord) error
+// ReadStorage интерфейс для работы с чтением данных из хранилища
+type ReadStorage interface {
 	GetRecord(context.Context, string) (string, error)
 	GetUserRecords(context.Context, string) ([]TableRecord, error)
-	DeleteURLs(context.Context, string, []string) error
 	Ping(ctx context.Context) error
+}
+
+// WriteStorage интерфейс для работы с записью данных в хранилище
+type WriteStorage interface {
+	AddRecord(context.Context, TableRecord) error
+	AddRecords(context.Context, []TableRecord) error
+	DeleteURLs(context.Context, string, []string) error
 	Close() error
+}
+
+// IStorage полный интерфейс для работы с хранилищем данных
+type IStorage interface {
+	ReadStorage
+	WriteStorage
 }
 
 // NewStorage создание интерферса хранилища данных (поддерживает хранение в БД, оперативной памяти и текстовом файле)

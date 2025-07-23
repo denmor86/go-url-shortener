@@ -1,3 +1,4 @@
+// Package router предоставляет методы маршрутизации API запросов, используется пакет "github.com/go-chi/chi/v5"
 package router
 
 import (
