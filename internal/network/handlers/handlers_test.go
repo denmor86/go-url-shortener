@@ -66,7 +66,7 @@ func TestEncondeURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
-			u := &usecase.Usecase{Storage: tt.storage, Config: config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
+			u := &usecase.Usecase{Storage: tt.storage, Config: &config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
 			h := http.HandlerFunc(EncondeURL(u))
 			ctx := request.Context()
 			ctx = context.WithValue(ctx, usecase.UserIDContextKey, testUserID)
@@ -243,7 +243,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
-			u := &usecase.Usecase{Storage: tt.storage, Config: config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
+			u := &usecase.Usecase{Storage: tt.storage, Config: &config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
 			h := http.HandlerFunc(EncondeURLJson(u))
 			ctx := request.Context()
 			ctx = context.WithValue(ctx, usecase.UserIDContextKey, testUserID)
@@ -337,7 +337,7 @@ func TestEncondeJsonURLHandlerBatch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
-			u := &usecase.Usecase{Storage: tt.storage, Config: config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
+			u := &usecase.Usecase{Storage: tt.storage, Config: &config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
 			h := http.HandlerFunc(EncondeURLJsonBatch(u))
 			ctx := request.Context()
 			ctx = context.WithValue(ctx, usecase.UserIDContextKey, testUserID)

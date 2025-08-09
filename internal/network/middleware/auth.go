@@ -25,7 +25,7 @@ type Authorization struct {
 }
 
 // NewAuthorization - метод формирования объекта middelware для авторизации пользователя
-func NewAuthorization(cfg config.Config) *Authorization {
+func NewAuthorization(cfg *config.Config) *Authorization {
 	return &Authorization{Secret: []byte(cfg.JWTSecret)}
 }
 

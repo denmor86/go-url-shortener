@@ -32,6 +32,8 @@ type Config struct {
 	JWTSecret string `env:"JWT_SECRET"`
 	// UseDebug - признак включения отладочного режима (профилирование)
 	UseDebug bool
+	// HTTPSEnabled - признак включения https
+	HTTPSEnabled bool `env:"ENABLE_HTTPS"`
 }
 
 // Настройки по-умолчанию
@@ -45,10 +47,11 @@ const (
 	DefaultDatabaseTimeout = time.Duration(5)
 	DefaultJWTSecret       = "secret"
 	DefaultUseDebug        = false
+	DefaultHTTPSEnabled    = false
 )
 
 // NewConfig - метод формирования конфигурации приложения. Используются переменные окружения и флаги запуска приложения.
-func NewConfig() Config {
+func NewConfig() *Config {
 
 	pflag.StringP("server", "a", DefaultListenServer, "Server listen address in a form host:port.")
 	pflag.StringP("base_url", "b", DefaultBaseURL, "Server base URL.")
@@ -57,8 +60,9 @@ func NewConfig() Config {
 	pflag.StringP("file_storage_path", "f", filepath.Join(os.TempDir(), DefaultCacheFileName), "Path to cache file.")
 	pflag.StringP("db_dsn", "d", DefaultDatabaseDSN, "Database DSN")
 	pflag.IntP("db_timeout", "t", int(DefaultDatabaseTimeout.Abs()), "Database timeout connection, seconds.")
-	pflag.StringP("jwt_secret", "s", DefaultJWTSecret, "Secret to JWT")
+	pflag.StringP("jwt_secret", "j", DefaultJWTSecret, "Secret to JWT")
 	pflag.BoolP("debug", "m", DefaultUseDebug, "Debug mode")
+	pflag.BoolP("https", "s", DefaultHTTPSEnabled, "Enable https")
 
 	pflag.Parse()
 
@@ -112,12 +116,16 @@ func NewConfig() Config {
 		config.UseDebug = debug
 	}
 
-	return config
+	if https, err := pflag.CommandLine.GetBool("https"); err == nil {
+		config.HTTPSEnabled = https
+	}
+
+	return &config
 }
 
-// DefaultConfig - метод формирования конфигурации по-умолчанию
-func DefaultConfig() Config {
-	return Config{
+// NewDefaultConfig - метод формирования конфигурации по-умолчанию
+func NewDefaultConfig() *Config {
+	return &Config{
 		ListenAddr:      DefaultListenServer,
 		BaseURL:         DefaultBaseURL,
 		ShortURLLen:     DefaultShortURLlen,
@@ -126,5 +134,6 @@ func DefaultConfig() Config {
 		DatabaseDSN:     DefaultDatabaseDSN,
 		JWTSecret:       DefaultJWTSecret,
 		UseDebug:        true,
+		HTTPSEnabled:    false,
 	}
 }

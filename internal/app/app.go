@@ -24,8 +24,15 @@ import (
 
 // App - модель данных приложения
 type App struct {
-	Config  config.Config
+	Config  *config.Config
 	Storage storage.IStorage
+}
+
+func startServer(server *http.Server, https bool) error {
+	if https {
+		return server.ListenAndServeTLS("", "")
+	}
+	return server.ListenAndServe()
 }
 
 // Run - метод иницилизации приложения и запуска сервера обработки сообщений
@@ -57,7 +64,8 @@ func (a *App) Run() {
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+
+		if err := startServer(server, a.Config.HTTPSEnabled); err != nil && err != http.ErrServerClosed {
 			logger.Error("error listen server", err.Error())
 		}
 	}()
