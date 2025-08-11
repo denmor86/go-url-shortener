@@ -3,37 +3,41 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/caarlos0/env"
+	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 )
 
 // Config - модель конфигурации приложения
 type Config struct {
 	// ListenAddr - адрес сервера
-	ListenAddr string `env:"SERVER_ADDRESS"`
+	ListenAddr string `env:"SERVER_ADDRESS" json:"server_address"`
 	// BaseURL - базовый URL для формирования коротких ссылок
-	BaseURL string `env:"BASE_URL"`
+	BaseURL string `env:"BASE_URL" json:"base_url"`
 	// ShortURLLen - длинна сгенерированных коротких ссылок
-	ShortURLLen int `env:"MAX_URL_LEN" envDefault:"8"`
+	ShortURLLen int `env:"MAX_URL_LEN" json:"max_url_len"`
 	// LogLevel - уровени логирования
-	LogLevel string `env:"LOG_LEVEL" envDefault:"info"`
+	LogLevel string `env:"LOG_LEVEL" json:"log_level"`
 	// FileStoragePath - путь к файловому хранилищу
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" json:"file_storage_path"`
 	// DatabaseDSN - строка подключения к БД
-	DatabaseDSN string `env:"DATABASE_DSN"`
+	DatabaseDSN string `env:"DATABASE_DSN" json:"database_dsn"`
 	// DatabaseTimeout - таймаут запросов к БД
-	DatabaseTimeout time.Duration `env:"DATABASE_TIMEOUT"`
+	DatabaseTimeout time.Duration `env:"DATABASE_TIMEOUT"  json:"database_timeout"`
 	// JWTSecret - секрет для JWT токена
-	JWTSecret string `env:"JWT_SECRET"`
-	// UseDebug - признак включения отладочного режима (профилирование)
-	UseDebug bool
+	JWTSecret string `env:"JWT_SECRET" json:"jwt_secret"`
+	// DebugEnable - признак включения отладочного режима (профилирование)
+	DebugEnable bool `json:"enable_debug"`
 	// HTTPSEnabled - признак включения https
-	HTTPSEnabled bool `env:"ENABLE_HTTPS"`
+	HTTPSEnabled bool `env:"ENABLE_HTTPS" json:"enable_https"`
+	// ConfigFilePath - путь к файлу конфигурации
+	ConfigFilePath string `env:"CONFIG" json:"-"`
 }
 
 // Настройки по-умолчанию
@@ -46,81 +50,103 @@ const (
 	DefaultDatabaseDSN     = ""
 	DefaultDatabaseTimeout = time.Duration(5)
 	DefaultJWTSecret       = "secret"
-	DefaultUseDebug        = false
+	DefaultDebugEnabled    = false
 	DefaultHTTPSEnabled    = false
+	DefaultConfigFilePath  = ""
 )
+
+func (cfg *Config) parseFromEnv() {
+	if err := env.Parse(cfg); err != nil {
+		panic(fmt.Sprintf("Failed to parse enviroment var: %s", err.Error()))
+	}
+}
+func (cfg *Config) parseFromFlags() {
+
+	pflag.StringVarP(&cfg.ListenAddr, "server", "a", DefaultListenServer, "Server listen address in a form host:port.")
+	pflag.StringVarP(&cfg.BaseURL, "base_url", "b", DefaultBaseURL, "Server base URL.")
+	pflag.IntVarP(&cfg.ShortURLLen, "url_len", "n", DefaultShortURLlen, "Short URL length.")
+	pflag.StringVarP(&cfg.LogLevel, "log_level", "l", DefaultLogLevel, "Log level.")
+	pflag.StringVarP(&cfg.FileStoragePath, "file_storage_path", "f", DefaultCacheFileName, "Path to cache file.")
+	pflag.StringVarP(&cfg.DatabaseDSN, "db_dsn", "d", DefaultDatabaseDSN, "Database DSN")
+	pflag.DurationVarP(&cfg.DatabaseTimeout, "db_timeout", "t", DefaultDatabaseTimeout, "Database timeout connection, seconds.")
+	pflag.StringVarP(&cfg.JWTSecret, "jwt_secret", "j", DefaultJWTSecret, "Secret to JWT")
+	pflag.BoolVarP(&cfg.DebugEnable, "debug", "m", DefaultDebugEnabled, "Debug mode")
+	pflag.BoolVarP(&cfg.HTTPSEnabled, "https", "s", DefaultHTTPSEnabled, "Enable https")
+	pflag.StringVarP(&cfg.ConfigFilePath, "config", "c", DefaultConfigFilePath, "Path to config file.")
+
+	pflag.Parse()
+}
+
+func (cfg *Config) parseFromFile() {
+	if len(cfg.ConfigFilePath) == 0 {
+		return
+	}
+	buf, err := os.ReadFile(cfg.ConfigFilePath)
+	if err != nil {
+		panic(fmt.Sprintf("can't load config file: %s ", errors.Cause(err).Error()))
+	}
+	tmp := NewDefaultConfig()
+	if err = json.Unmarshal(buf, tmp); err != nil {
+		panic(fmt.Sprintf("can't parse config file: %s ", errors.Cause(err).Error()))
+	}
+	// Определение адреса сервера
+	if cfg.ListenAddr == DefaultListenServer {
+		cfg.ListenAddr = tmp.ListenAddr
+	}
+	// Определение базового URL
+	if cfg.BaseURL == DefaultBaseURL {
+		cfg.BaseURL = tmp.BaseURL
+	}
+	// Определение максимальной длинны сокращаемых URLs
+	if cfg.ShortURLLen == DefaultShortURLlen {
+		cfg.ShortURLLen = tmp.ShortURLLen
+	}
+	// Определение уровня логирования
+	if cfg.LogLevel == DefaultLogLevel {
+		cfg.LogLevel = tmp.LogLevel
+	}
+	// Определение пути к файлу с текстовым кэшем
+	if cfg.FileStoragePath == DefaultCacheFileName {
+		cfg.FileStoragePath = tmp.FileStoragePath
+	}
+	// Определение DSN для подключения к БД
+	if cfg.DatabaseDSN == DefaultDatabaseDSN {
+		cfg.DatabaseDSN = tmp.DatabaseDSN
+	}
+	// Определение таймаута работы с БД
+	if cfg.DatabaseTimeout == DefaultDatabaseTimeout {
+		cfg.DatabaseTimeout = tmp.DatabaseTimeout
+	}
+	// Определение секрета JWT токена
+	if cfg.JWTSecret == DefaultJWTSecret {
+		cfg.JWTSecret = tmp.JWTSecret
+	}
+	// Определение признака работы в debug (profiler)
+	if !cfg.DebugEnable {
+		cfg.DebugEnable = tmp.DebugEnable
+	}
+	// Определение признака работы по HTTPS
+	if !cfg.HTTPSEnabled {
+		cfg.HTTPSEnabled = tmp.HTTPSEnabled
+	}
+}
 
 // NewConfig - метод формирования конфигурации приложения. Используются переменные окружения и флаги запуска приложения.
 func NewConfig() *Config {
 
-	pflag.StringP("server", "a", DefaultListenServer, "Server listen address in a form host:port.")
-	pflag.StringP("base_url", "b", DefaultBaseURL, "Server base URL.")
-	pflag.IntP("url_len", "n", DefaultShortURLlen, "Short URL length.")
-	pflag.StringP("log_level", "l", DefaultLogLevel, "Log level.")
-	pflag.StringP("file_storage_path", "f", filepath.Join(os.TempDir(), DefaultCacheFileName), "Path to cache file.")
-	pflag.StringP("db_dsn", "d", DefaultDatabaseDSN, "Database DSN")
-	pflag.IntP("db_timeout", "t", int(DefaultDatabaseTimeout.Abs()), "Database timeout connection, seconds.")
-	pflag.StringP("jwt_secret", "j", DefaultJWTSecret, "Secret to JWT")
-	pflag.BoolP("debug", "m", DefaultUseDebug, "Debug mode")
-	pflag.BoolP("https", "s", DefaultHTTPSEnabled, "Enable https")
+	// инициализируемся по дефолту
+	config := NewDefaultConfig()
 
-	pflag.Parse()
+	// Устанавливаем из флагов
+	config.parseFromFlags()
 
-	var config Config
-	if err := env.Parse(&config); err != nil {
-		panic(fmt.Sprintf("Failed to parse enviroment var: %s", err.Error()))
-	}
+	// Перезаписываем параметры, которые есть в окружении
+	config.parseFromEnv()
 
-	if config.ListenAddr == "" {
-		if address, err := pflag.CommandLine.GetString("server"); err == nil {
-			config.ListenAddr = address
-		}
-	}
-	if config.BaseURL == "" {
-		if baseURL, err := pflag.CommandLine.GetString("base_url"); err == nil {
-			config.BaseURL = baseURL
-		}
-	}
-	if config.ShortURLLen == DefaultShortURLlen {
-		if urlLen, err := pflag.CommandLine.GetInt("url_len"); err == nil {
-			config.ShortURLLen = urlLen
-		}
-	}
-	if config.LogLevel == DefaultLogLevel {
-		if logLevel, err := pflag.CommandLine.GetString("log_level"); err == nil {
-			config.LogLevel = logLevel
-		}
-	}
-	if config.FileStoragePath == "" {
-		if filepath, err := pflag.CommandLine.GetString("file_storage_path"); err == nil {
-			config.FileStoragePath = filepath
-		}
-	}
-	if config.DatabaseDSN == "" {
-		if dsn, err := pflag.CommandLine.GetString("db_dsn"); err == nil {
-			config.DatabaseDSN = dsn
-		}
-	}
-	if config.DatabaseTimeout == 0 {
-		if timeout, err := pflag.CommandLine.GetInt("db_timeout"); err == nil {
-			config.DatabaseTimeout = time.Duration(timeout) * time.Second
-		}
-	}
-	if config.JWTSecret == "" {
-		if secret, err := pflag.CommandLine.GetString("jwt_secret"); err == nil {
-			config.JWTSecret = secret
-		}
-	}
+	// Устанавливаем файла те параметры, которые не установлены ранее
+	config.parseFromFile()
 
-	if debug, err := pflag.CommandLine.GetBool("debug"); err == nil {
-		config.UseDebug = debug
-	}
-
-	if https, err := pflag.CommandLine.GetBool("https"); err == nil {
-		config.HTTPSEnabled = https
-	}
-
-	return &config
+	return config
 }
 
 // NewDefaultConfig - метод формирования конфигурации по-умолчанию
@@ -130,10 +156,11 @@ func NewDefaultConfig() *Config {
 		BaseURL:         DefaultBaseURL,
 		ShortURLLen:     DefaultShortURLlen,
 		LogLevel:        DefaultLogLevel,
-		FileStoragePath: "",
+		FileStoragePath: filepath.Join(os.TempDir(), DefaultCacheFileName),
 		DatabaseDSN:     DefaultDatabaseDSN,
 		JWTSecret:       DefaultJWTSecret,
-		UseDebug:        true,
+		DebugEnable:     true,
 		HTTPSEnabled:    false,
+		ConfigFilePath:  DefaultConfigFilePath,
 	}
 }
