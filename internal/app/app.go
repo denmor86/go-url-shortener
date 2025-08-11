@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -42,7 +41,7 @@ func createServer(listenAddr string, use *usecase.Usecase) *http.Server {
 	// Генерируем самоподписанный сертификат
 	cert, key, err := helpers.GenerateSelfSignedCert()
 	if err != nil {
-		log.Fatalf("Ошибка генерации сертификата: %v", err)
+		logger.Error("error generate certificate", err.Error())
 	}
 
 	// Создаем TLS конфигурацию
