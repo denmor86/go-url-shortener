@@ -4,7 +4,9 @@ package app
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/denmor86/go-url-shortener/internal/config"
+	"github.com/denmor86/go-url-shortener/internal/helpers"
 	"github.com/denmor86/go-url-shortener/internal/logger"
 	"github.com/denmor86/go-url-shortener/internal/network/router"
 	"github.com/denmor86/go-url-shortener/internal/storage"
@@ -33,6 +36,30 @@ func startServer(server *http.Server, https bool) error {
 		return server.ListenAndServeTLS("", "")
 	}
 	return server.ListenAndServe()
+}
+
+func createServer(listenAddr string, use *usecase.Usecase) *http.Server {
+	// Генерируем самоподписанный сертификат
+	cert, key, err := helpers.GenerateSelfSignedCert()
+	if err != nil {
+		log.Fatalf("Ошибка генерации сертификата: %v", err)
+	}
+
+	// Создаем TLS конфигурацию
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{
+			{
+				Certificate: [][]byte{cert},
+				PrivateKey:  key,
+			},
+		},
+	}
+
+	return &http.Server{
+		Addr:      listenAddr,
+		Handler:   router.HandleRouter(use),
+		TLSConfig: tlsConfig,
+	}
 }
 
 // Run - метод иницилизации приложения и запуска сервера обработки сообщений
@@ -55,13 +82,10 @@ func (a *App) Run() {
 		workerpool.Wait()
 	}()
 
-	server := &http.Server{
-		Addr:    a.Config.ListenAddr,
-		Handler: router.HandleRouter(use),
-	}
-
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	server := createServer(a.Config.ListenAddr, use)
 
 	go func() {
 
