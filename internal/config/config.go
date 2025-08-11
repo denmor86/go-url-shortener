@@ -66,7 +66,7 @@ func (cfg *Config) parseFromFlags() {
 	pflag.StringVarP(&cfg.BaseURL, "base_url", "b", DefaultBaseURL, "Server base URL.")
 	pflag.IntVarP(&cfg.ShortURLLen, "url_len", "n", DefaultShortURLlen, "Short URL length.")
 	pflag.StringVarP(&cfg.LogLevel, "log_level", "l", DefaultLogLevel, "Log level.")
-	pflag.StringVarP(&cfg.FileStoragePath, "file_storage_path", "f", DefaultCacheFileName, "Path to cache file.")
+	pflag.StringVarP(&cfg.FileStoragePath, "file_storage_path", "f", filepath.Join(os.TempDir(), DefaultCacheFileName), "Path to cache file.")
 	pflag.StringVarP(&cfg.DatabaseDSN, "db_dsn", "d", DefaultDatabaseDSN, "Database DSN")
 	pflag.DurationVarP(&cfg.DatabaseTimeout, "db_timeout", "t", DefaultDatabaseTimeout, "Database timeout connection, seconds.")
 	pflag.StringVarP(&cfg.JWTSecret, "jwt_secret", "j", DefaultJWTSecret, "Secret to JWT")

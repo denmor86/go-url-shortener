@@ -50,6 +50,7 @@ func (s *FileStorage) Initialize(filepath string) error {
 	if err != nil {
 		return err
 	}
+	s.File = file
 	s.Writer = bufio.NewWriter(file)
 
 	// заполняем кэш данных
