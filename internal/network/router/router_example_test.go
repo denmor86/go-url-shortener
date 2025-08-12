@@ -150,7 +150,7 @@ func newTestUsecase() *usecase.Usecase {
 	}
 	defer logger.Sync()
 	// Хранение в памяти
-	store := storage.NewStorage(cfg)
+	store := storage.NewMemStorage()
 	// Тестовые записи
 	store.AddRecord(context.Background(), storage.TableRecord{OriginalURL: "https://practicum.yandex.ru/", ShortURL: "12345678", UserID: "mda"})
 	store.AddRecord(context.Background(), storage.TableRecord{OriginalURL: "https://google.com", ShortURL: "iFBc_bhG", UserID: "mda"})
