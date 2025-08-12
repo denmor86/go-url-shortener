@@ -143,14 +143,14 @@ func Example_ping() {
 
 func newTestUsecase() *usecase.Usecase {
 	// Конфигурация
-	config := config.DefaultConfig()
+	cfg := config.NewDefaultConfig()
 	// Инициализация логгера
-	if err := logger.Initialize(config.LogLevel); err != nil {
+	if err := logger.Initialize(cfg.LogLevel); err != nil {
 		logger.Panic(err)
 	}
 	defer logger.Sync()
 	// Хранение в памяти
-	store := storage.NewStorage(config)
+	store := storage.NewStorage(cfg)
 	// Тестовые записи
 	store.AddRecord(context.Background(), storage.TableRecord{OriginalURL: "https://practicum.yandex.ru/", ShortURL: "12345678", UserID: "mda"})
 	store.AddRecord(context.Background(), storage.TableRecord{OriginalURL: "https://google.com", ShortURL: "iFBc_bhG", UserID: "mda"})
@@ -158,5 +158,5 @@ func newTestUsecase() *usecase.Usecase {
 	worker := workerpool.NewWorkerPool(runtime.NumCPU())
 	worker.Run()
 
-	return usecase.NewUsecase(config, store, worker)
+	return usecase.NewUsecase(cfg, store, worker)
 }

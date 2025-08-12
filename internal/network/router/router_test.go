@@ -31,16 +31,16 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 }
 
 func TestHandleRouter(t *testing.T) {
-	config := config.DefaultConfig()
-	if err := logger.Initialize(config.LogLevel); err != nil {
+	cfg := config.NewDefaultConfig()
+	if err := logger.Initialize(cfg.LogLevel); err != nil {
 		logger.Panic(err)
 	}
 	defer logger.Sync()
-	store := storage.NewStorage(config)
+	store := storage.NewStorage(cfg)
 	store.AddRecord(context.Background(), storage.TableRecord{OriginalURL: "https://practicum.yandex.ru/", ShortURL: "12345678"})
 	store.AddRecord(context.Background(), storage.TableRecord{OriginalURL: "https://google.com", ShortURL: "iFBc_bhG"})
 	worker := workerpool.NewWorkerPool(runtime.NumCPU())
-	usecase := usecase.NewUsecase(config, store, worker)
+	usecase := usecase.NewUsecase(cfg, store, worker)
 	worker.Run()
 
 	ts := httptest.NewServer(HandleRouter(usecase))

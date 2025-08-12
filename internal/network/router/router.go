@@ -38,7 +38,7 @@ func HandleRouter(use *usecase.Usecase) chi.Router {
 			r.Get("/", handlers.PingStorage(use)) // GET /ping
 		})
 	})
-	if use.Config.UseDebug {
+	if use.Config.DebugEnable {
 		r.Mount("/debug", chiMiddleware.Profiler())
 	}
 	return r

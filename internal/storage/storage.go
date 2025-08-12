@@ -40,7 +40,7 @@ type IStorage interface {
 }
 
 // NewStorage создание интерферса хранилища данных (поддерживает хранение в БД, оперативной памяти и текстовом файле)
-func NewStorage(cfg config.Config) IStorage {
+func NewStorage(cfg *config.Config) IStorage {
 
 	if cfg.DatabaseDSN != "" {
 		storage, err := NewDatabaseStorage(cfg.DatabaseDSN)

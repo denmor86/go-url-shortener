@@ -19,7 +19,7 @@ import (
 
 // Usecase - модель основной бизнес логики
 type Usecase struct {
-	Config     config.Config          // конфигурация
+	Config     *config.Config         // конфигурация
 	Storage    storage.IStorage       // хранилище
 	WorkerPool *workerpool.WorkerPool // пул потоков
 }
@@ -82,7 +82,7 @@ var ErrUniqueViolation = errors.New("URL already exist")
 var ErrDeletedViolation = errors.New("URL is deleted")
 
 // NewUsecase - метод создания объекта бизнес логики
-func NewUsecase(cfg config.Config, storage storage.IStorage, workerpool *workerpool.WorkerPool) *Usecase {
+func NewUsecase(cfg *config.Config, storage storage.IStorage, workerpool *workerpool.WorkerPool) *Usecase {
 	return &Usecase{Config: cfg, Storage: storage, WorkerPool: workerpool}
 }
 
