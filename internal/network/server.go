@@ -10,6 +10,7 @@ import (
 	"github.com/denmor86/go-url-shortener/internal/usecase"
 )
 
+// StartServer - метод запускает сервер в зависимости от настроек http/https
 func StartServer(server *http.Server, https bool) error {
 	if https {
 		return server.ListenAndServeTLS("", "")
@@ -17,6 +18,7 @@ func StartServer(server *http.Server, https bool) error {
 	return server.ListenAndServe()
 }
 
+// NewServer - метод создаёт новый сервер
 func NewServer(listenAddr string, use *usecase.Usecase) *http.Server {
 	// Генерируем самоподписанный сертификат
 	cert, key, err := helpers.GenerateSelfSignedCert()
