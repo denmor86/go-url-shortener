@@ -4,7 +4,6 @@ package app
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -16,9 +15,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/denmor86/go-url-shortener/internal/config"
-	"github.com/denmor86/go-url-shortener/internal/helpers"
 	"github.com/denmor86/go-url-shortener/internal/logger"
-	"github.com/denmor86/go-url-shortener/internal/network/router"
+	"github.com/denmor86/go-url-shortener/internal/network"
 	"github.com/denmor86/go-url-shortener/internal/storage"
 	"github.com/denmor86/go-url-shortener/internal/usecase"
 	"github.com/denmor86/go-url-shortener/internal/workerpool"
@@ -28,37 +26,6 @@ import (
 type App struct {
 	Config  *config.Config
 	Storage storage.IStorage
-}
-
-func startServer(server *http.Server, https bool) error {
-	if https {
-		return server.ListenAndServeTLS("", "")
-	}
-	return server.ListenAndServe()
-}
-
-func createServer(listenAddr string, use *usecase.Usecase) *http.Server {
-	// Генерируем самоподписанный сертификат
-	cert, key, err := helpers.GenerateSelfSignedCert()
-	if err != nil {
-		logger.Error("error generate certificate", err.Error())
-	}
-
-	// Создаем TLS конфигурацию
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{
-			{
-				Certificate: [][]byte{cert},
-				PrivateKey:  key,
-			},
-		},
-	}
-
-	return &http.Server{
-		Addr:      listenAddr,
-		Handler:   router.HandleRouter(use),
-		TLSConfig: tlsConfig,
-	}
 }
 
 // Run - метод иницилизации приложения и запуска сервера обработки сообщений
@@ -84,11 +51,11 @@ func (a *App) Run() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
-	server := createServer(a.Config.ListenAddr, use)
+	server := network.NewServer(a.Config.ListenAddr, use)
 
 	go func() {
 
-		if err := startServer(server, a.Config.HTTPSEnabled); err != nil && err != http.ErrServerClosed {
+		if err := network.StartServer(server, a.Config.HTTPSEnabled); err != nil && err != http.ErrServerClosed {
 			logger.Error("error listen server", err.Error())
 		}
 	}()
