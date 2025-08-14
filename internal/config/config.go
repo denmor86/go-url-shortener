@@ -38,6 +38,8 @@ type Config struct {
 	HTTPSEnabled bool `env:"ENABLE_HTTPS" json:"enable_https"`
 	// ConfigFilePath - путь к файлу конфигурации
 	ConfigFilePath string `env:"CONFIG" json:"-"`
+	// TrustedSubnet - доверенная подсеть
+	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 }
 
 // Настройки по-умолчанию
@@ -53,6 +55,7 @@ const (
 	DefaultDebugEnabled    = false
 	DefaultHTTPSEnabled    = false
 	DefaultConfigFilePath  = ""
+	DefaultTrustedSubnet   = ""
 )
 
 func (cfg *Config) parseFromEnv() {
@@ -73,6 +76,7 @@ func (cfg *Config) parseFromFlags() {
 	pflag.BoolVarP(&cfg.DebugEnable, "debug", "m", DefaultDebugEnabled, "Debug mode")
 	pflag.BoolVarP(&cfg.HTTPSEnabled, "https", "s", DefaultHTTPSEnabled, "Enable https")
 	pflag.StringVarP(&cfg.ConfigFilePath, "config", "c", DefaultConfigFilePath, "Path to config file.")
+	pflag.StringVarP(&cfg.TrustedSubnet, "trusted_subnet", "t", DefaultTrustedSubnet, "Trusted subnet")
 
 	pflag.Parse()
 }
@@ -129,6 +133,10 @@ func (cfg *Config) parseFromFile() {
 	if !cfg.HTTPSEnabled {
 		cfg.HTTPSEnabled = tmp.HTTPSEnabled
 	}
+	// Определение доверенной подсети
+	if cfg.TrustedSubnet == DefaultTrustedSubnet {
+		cfg.TrustedSubnet = tmp.TrustedSubnet
+	}
 }
 
 // NewConfig - метод формирования конфигурации приложения. Используются переменные окружения и флаги запуска приложения.
@@ -159,8 +167,9 @@ func NewDefaultConfig() *Config {
 		FileStoragePath: filepath.Join(os.TempDir(), DefaultCacheFileName),
 		DatabaseDSN:     DefaultDatabaseDSN,
 		JWTSecret:       DefaultJWTSecret,
-		DebugEnable:     true,
-		HTTPSEnabled:    false,
+		DebugEnable:     DefaultDebugEnabled,
+		HTTPSEnabled:    DefaultHTTPSEnabled,
 		ConfigFilePath:  DefaultConfigFilePath,
+		TrustedSubnet:   DefaultTrustedSubnet,
 	}
 }
