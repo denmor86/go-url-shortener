@@ -161,3 +161,14 @@ func (s *FileStorage) Ping(ctx context.Context) error {
 	}
 	return fmt.Errorf("file not open")
 }
+
+// GetStat - метод получения статистики по URLs
+func (s *FileStorage) GetStat(ctx context.Context) RecordStatistic {
+	userIDs := make(map[string]struct{}) // Используем map для хранения уникальных UserID
+	for _, record := range s.Cache.Urls {
+		if record.UserID != "" { // Проверяем, чтобы UserID не был пустым
+			userIDs[record.UserID] = struct{}{}
+		}
+	}
+	return RecordStatistic{URLs: len(s.Cache.Urls), Users: len(userIDs)}
+}

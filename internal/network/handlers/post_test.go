@@ -8,11 +8,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/denmor86/go-url-shortener/internal/config"
 	"github.com/denmor86/go-url-shortener/internal/storage"
 	"github.com/denmor86/go-url-shortener/internal/usecase"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (

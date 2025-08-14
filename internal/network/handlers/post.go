@@ -3,8 +3,9 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/denmor86/go-url-shortener/internal/usecase"
 	"github.com/pkg/errors"
+
+	"github.com/denmor86/go-url-shortener/internal/usecase"
 )
 
 // EncondeURL - метод-обработчик получения запроса на формирования короткой ссылки

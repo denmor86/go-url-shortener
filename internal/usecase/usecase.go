@@ -59,6 +59,12 @@ type URLDeleteJob struct {
 	ShortURLs []string         // массив  коротких URL
 }
 
+// StatisticResponse - модель ответа на запрос статистики коротких ссылок
+type StatisticResponse struct {
+	URLs  int `json:"urls"`  // количество сокращенных URL
+	Users int `json:"users"` // количество пользователей
+}
+
 // Do - удаляет записи пользователя.
 func (j *URLDeleteJob) Do(ctx context.Context) {
 	err := j.Storage.DeleteURLs(ctx, j.UserID, j.ShortURLs)
@@ -258,4 +264,14 @@ func (u *Usecase) DeleteURLS(ctx context.Context, reader io.Reader, userID strin
 	u.WorkerPool.AddJob(&URLDeleteJob{Storage: u.Storage, UserID: userID, ShortURLs: shortURLS})
 
 	return nil
+}
+
+// GetStatistic - метод получения статистики об имеющихся записях URL и пользователях
+func (u *Usecase) GetStatistic(ctx context.Context) ([]byte, error) {
+	stat := u.Storage.GetStat(ctx)
+	resp, err := json.Marshal(StatisticResponse{URLs: stat.URLs, Users: stat.Users})
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling: %w", err)
+	}
+	return resp, nil
 }

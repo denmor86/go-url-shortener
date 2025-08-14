@@ -10,13 +10,14 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/denmor86/go-url-shortener/internal/config"
 	"github.com/denmor86/go-url-shortener/internal/logger"
 	"github.com/denmor86/go-url-shortener/internal/storage"
 	"github.com/denmor86/go-url-shortener/internal/usecase"
 	"github.com/denmor86/go-url-shortener/internal/workerpool"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestDeleteURLS(t *testing.T) {

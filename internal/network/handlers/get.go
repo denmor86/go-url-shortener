@@ -3,9 +3,10 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/denmor86/go-url-shortener/internal/usecase"
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
+
+	"github.com/denmor86/go-url-shortener/internal/usecase"
 )
 
 // DecodeURL - метод-обработчик получения запроса на получение оригинального URL по короткой ссылке
@@ -65,5 +66,19 @@ func GetURLS(u *usecase.Usecase) http.HandlerFunc {
 			w.WriteHeader(http.StatusOK)
 			w.Write(responce)
 		}
+	}
+}
+
+// GetStats - метод-обработчик получения данных о статистике сокращенных URLs
+func GetStats(u *usecase.Usecase) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		responce, err := u.GetStatistic(r.Context())
+		if err != nil {
+			http.Error(w, errors.Cause(err).Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(responce)
 	}
 }

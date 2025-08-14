@@ -2,9 +2,12 @@
 package router
 
 import (
+	"net"
+
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 
+	"github.com/denmor86/go-url-shortener/internal/logger"
 	"github.com/denmor86/go-url-shortener/internal/network/handlers"
 	"github.com/denmor86/go-url-shortener/internal/network/middleware"
 	"github.com/denmor86/go-url-shortener/internal/usecase"
@@ -33,6 +36,19 @@ func HandleRouter(use *usecase.Usecase) chi.Router {
 					r.Delete("/", handlers.DeleteURLS(use))
 				})
 			})
+			if len(use.Config.TrustedSubnet) != 0 {
+				_, trustedSubnet, err := net.ParseCIDR(use.Config.TrustedSubnet)
+				if err != nil {
+					logger.Error()
+				}
+				trust := middleware.NewTrustNet(trustedSubnet)
+				r.Use(trust.TrustGuard)
+				r.Route("/internal", func(r chi.Router) {
+					r.Route("/stats", func(r chi.Router) {
+						r.Get("/", handlers.GetURLS(use))
+					})
+				})
+			}
 		})
 		r.Route("/ping", func(r chi.Router) {
 			r.Get("/", handlers.PingStorage(use)) // GET /ping
