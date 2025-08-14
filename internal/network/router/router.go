@@ -3,6 +3,7 @@ package router
 
 import (
 	"net"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -37,15 +38,15 @@ func HandleRouter(use *usecase.Usecase) chi.Router {
 				})
 			})
 			if len(use.Config.TrustedSubnet) != 0 {
-				_, trustedSubnet, err := net.ParseCIDR(use.Config.TrustedSubnet)
+				_, trustedSubnet, err := net.ParseCIDR(strings.TrimSpace(use.Config.TrustedSubnet))
 				if err != nil {
-					logger.Error()
+					logger.Warn(err)
 				}
 				trust := middleware.NewTrustNet(trustedSubnet)
-				r.Use(trust.TrustGuard)
 				r.Route("/internal", func(r chi.Router) {
 					r.Route("/stats", func(r chi.Router) {
-						r.Get("/", handlers.GetURLS(use))
+						r.Use(trust.TrustGuard)
+						r.Get("/", handlers.GetStats(use))
 					})
 				})
 			}
@@ -54,6 +55,7 @@ func HandleRouter(use *usecase.Usecase) chi.Router {
 			r.Get("/", handlers.PingStorage(use)) // GET /ping
 		})
 	})
+
 	if use.Config.DebugEnable {
 		r.Mount("/debug", chiMiddleware.Profiler())
 	}
