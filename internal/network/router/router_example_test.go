@@ -20,8 +20,10 @@ import (
 
 // Пример для GET /{id}
 func Example_decodeURL() {
+	// Конфигурация
+	cfg := config.NewDefaultConfig()
 	// Инициализация роутера
-	r := HandleRouter(newTestUsecase())
+	r := HandleRouter(cfg, newTestUsecase(cfg))
 
 	req := httptest.NewRequest("GET", "/iFBc_bhG", nil)
 	w := httptest.NewRecorder()
@@ -34,8 +36,10 @@ func Example_decodeURL() {
 
 // Пример для POST / (кодирование URL тело запроса)
 func Example_encodeURL() {
+	// Конфигурация
+	cfg := config.NewDefaultConfig()
 	// Инициализация роутера
-	r := HandleRouter(newTestUsecase())
+	r := HandleRouter(cfg, newTestUsecase(cfg))
 
 	// Подготовка формы
 	form := url.Values{}
@@ -54,8 +58,10 @@ func Example_encodeURL() {
 
 // Пример для POST /api/shorten/
 func Example_encondeURLJson() {
+	// Конфигурация
+	cfg := config.NewDefaultConfig()
 	// Инициализация роутера
-	r := HandleRouter(newTestUsecase())
+	r := HandleRouter(cfg, newTestUsecase(cfg))
 
 	// Подготовка запроса
 	jsonBody := []byte(`{"url":"https://google.com"}`)
@@ -78,7 +84,10 @@ func Example_encondeURLJson() {
 
 // Пример для POST /api/shorten/batch
 func Example_encodeBatchURLs() {
-	r := HandleRouter(newTestUsecase())
+	// Конфигурация
+	cfg := config.NewDefaultConfig()
+	// Инициализация роутера
+	r := HandleRouter(cfg, newTestUsecase(cfg))
 
 	batchData := `[
         {"correlation_id": "1", "original_url": "https://test.com/batch1"},
@@ -97,7 +106,10 @@ func Example_encodeBatchURLs() {
 
 // Example_getUserURLs - Пример для GET /api/user/urls
 func Example_getUserURLs() {
-	r := HandleRouter(newTestUsecase())
+	// Конфигурация
+	cfg := config.NewDefaultConfig()
+	// Инициализация роутера
+	r := HandleRouter(cfg, newTestUsecase(cfg))
 	req := httptest.NewRequest("GET", "/api/user/urls", nil)
 	if token, err := helpers.BuildJWT("mda", []byte("secret")); err == nil {
 		req.AddCookie(&http.Cookie{Name: "user-token", Value: token})
@@ -113,7 +125,10 @@ func Example_getUserURLs() {
 
 // Пример для DELETE /api/user/urls
 func Example_deleteUserURLs() {
-	r := HandleRouter(newTestUsecase())
+	// Конфигурация
+	cfg := config.NewDefaultConfig()
+	// Инициализация роутера
+	r := HandleRouter(cfg, newTestUsecase(cfg))
 	req := httptest.NewRequest("DELETE", "/api/user/urls", strings.NewReader(`["iFBc_bhG"]`))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -131,7 +146,9 @@ func Example_deleteUserURLs() {
 
 // Пример для GET /ping
 func Example_ping() {
-	r := HandleRouter(newTestUsecase())
+	// Конфигурация
+	cfg := config.NewDefaultConfig()
+	r := HandleRouter(cfg, newTestUsecase(cfg))
 
 	req := httptest.NewRequest("GET", "/ping", nil)
 	w := httptest.NewRecorder()
@@ -141,9 +158,8 @@ func Example_ping() {
 	// Output: Status: 200
 }
 
-func newTestUsecase() *usecase.Usecase {
-	// Конфигурация
-	cfg := config.NewDefaultConfig()
+func newTestUsecase(cfg *config.Config) *usecase.UsecaseHTTP {
+
 	// Инициализация логгера
 	if err := logger.Initialize(cfg.LogLevel); err != nil {
 		logger.Panic(err)
@@ -158,5 +174,5 @@ func newTestUsecase() *usecase.Usecase {
 	worker := workerpool.NewWorkerPool(runtime.NumCPU())
 	worker.Run()
 
-	return usecase.NewUsecase(cfg, store, worker)
+	return usecase.NewUsecaseHTTP(cfg, store, worker)
 }

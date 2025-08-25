@@ -18,6 +18,8 @@ import (
 type Config struct {
 	// ListenAddr - адрес сервера
 	ListenAddr string `env:"SERVER_ADDRESS" json:"server_address"`
+	// GRPCAddr - адрес GRPC сервера
+	GRPCAddr string `env:"GRPC_ADDRESS" json:"grpc_address"`
 	// BaseURL - базовый URL для формирования коротких ссылок
 	BaseURL string `env:"BASE_URL" json:"base_url"`
 	// ShortURLLen - длинна сгенерированных коротких ссылок
@@ -45,6 +47,7 @@ type Config struct {
 // Настройки по-умолчанию
 const (
 	DefaultListenServer    = "localhost:8080"
+	DefaultGRPCAddr        = ":8081"
 	DefaultBaseURL         = "http://" + DefaultListenServer
 	DefaultShortURLlen     = 8
 	DefaultLogLevel        = "info"
@@ -66,6 +69,7 @@ func (cfg *Config) parseFromEnv() {
 func (cfg *Config) parseFromFlags() {
 
 	pflag.StringVarP(&cfg.ListenAddr, "server", "a", DefaultListenServer, "Server listen address in a form host:port.")
+	pflag.StringVarP(&cfg.GRPCAddr, "grpc", "g", DefaultGRPCAddr, "Server GRPC address as host:port")
 	pflag.StringVarP(&cfg.BaseURL, "base_url", "b", DefaultBaseURL, "Server base URL.")
 	pflag.IntVar(&cfg.ShortURLLen, "url_len", DefaultShortURLlen, "Short URL length.")
 	pflag.StringVar(&cfg.LogLevel, "log_level", DefaultLogLevel, "Log level.")
@@ -96,6 +100,10 @@ func (cfg *Config) parseFromFile() {
 	// Определение адреса сервера
 	if cfg.ListenAddr == DefaultListenServer {
 		cfg.ListenAddr = tmp.ListenAddr
+	}
+	// Определение GRPC адреса сервера
+	if cfg.GRPCAddr == DefaultGRPCAddr {
+		cfg.GRPCAddr = tmp.GRPCAddr
 	}
 	// Определение базового URL
 	if cfg.BaseURL == DefaultBaseURL {
@@ -161,6 +169,7 @@ func NewConfig() *Config {
 func NewDefaultConfig() *Config {
 	return &Config{
 		ListenAddr:      DefaultListenServer,
+		GRPCAddr:        DefaultGRPCAddr,
 		BaseURL:         DefaultBaseURL,
 		ShortURLLen:     DefaultShortURLlen,
 		LogLevel:        DefaultLogLevel,

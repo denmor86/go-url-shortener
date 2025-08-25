@@ -76,7 +76,7 @@ func TestDeleteURLS(t *testing.T) {
 			u := newTestUsecase()
 
 			// Вызываем обработчик
-			handler := DeleteURLS(u)
+			handler := DeleteURLs(u)
 			handler(w, request)
 
 			result := w.Result()
@@ -98,7 +98,7 @@ func TestDeleteURLS(t *testing.T) {
 	}
 }
 
-func newTestUsecase() *usecase.Usecase {
+func newTestUsecase() *usecase.UsecaseHTTP {
 	// Конфигурация
 	cfg := config.NewDefaultConfig()
 	// Инициализация логгера
@@ -115,5 +115,5 @@ func newTestUsecase() *usecase.Usecase {
 	worker := workerpool.NewWorkerPool(runtime.NumCPU())
 	worker.Run()
 
-	return usecase.NewUsecase(cfg, store, worker)
+	return usecase.NewUsecaseHTTP(cfg, store, worker)
 }

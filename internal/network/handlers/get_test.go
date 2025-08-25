@@ -76,7 +76,7 @@ func TestDecodeURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, tt.request, nil)
 			w := httptest.NewRecorder()
-			u := &usecase.Usecase{Storage: tt.storage}
+			u := usecase.NewUsecaseHTTP(nil, tt.storage, nil)
 			h := http.HandlerFunc(DecodeURL(u))
 			ctx := request.Context()
 			ctx = context.WithValue(ctx, usecase.UserIDContextKey, testUserID)
@@ -140,7 +140,7 @@ func TestGetStatsHandler(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, "/api/internal/stats", nil)
 			w := httptest.NewRecorder()
 
-			u := &usecase.Usecase{Storage: tt.storage}
+			u := usecase.NewUsecaseHTTP(nil, tt.storage, nil)
 			h := GetStats(u)
 
 			// Добавляем userID в контекст если нужно

@@ -1,9 +1,10 @@
-package network
+package server
 
 import (
 	"crypto/tls"
 	"net/http"
 
+	"github.com/denmor86/go-url-shortener/internal/config"
 	"github.com/denmor86/go-url-shortener/internal/helpers"
 	"github.com/denmor86/go-url-shortener/internal/logger"
 	"github.com/denmor86/go-url-shortener/internal/network/router"
@@ -18,8 +19,8 @@ func StartServer(server *http.Server, https bool) error {
 	return server.ListenAndServe()
 }
 
-// NewServer - метод создаёт новый сервер
-func NewServer(listenAddr string, use *usecase.Usecase) *http.Server {
+// NewServer - метод создаёт новый HTTP сервер
+func NewServer(cfg *config.Config, use *usecase.UsecaseHTTP) *http.Server {
 	// Генерируем самоподписанный сертификат
 	cert, key, err := helpers.GenerateSelfSignedCert()
 	if err != nil {
@@ -37,8 +38,8 @@ func NewServer(listenAddr string, use *usecase.Usecase) *http.Server {
 	}
 
 	return &http.Server{
-		Addr:      listenAddr,
-		Handler:   router.HandleRouter(use),
+		Addr:      cfg.ListenAddr,
+		Handler:   router.HandleRouter(cfg, use),
 		TLSConfig: tlsConfig,
 	}
 }

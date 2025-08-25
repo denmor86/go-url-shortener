@@ -9,12 +9,12 @@ import (
 	"github.com/denmor86/go-url-shortener/internal/usecase"
 )
 
-// DeleteURLS - метод-обработчик формирования запроса на удаление данных о сокращенных URL пользователя
-func DeleteURLS(u *usecase.Usecase) http.HandlerFunc {
+// DeleteURLs - метод-обработчик формирования запроса на удаление данных о сокращенных URL пользователя
+func DeleteURLs(u *usecase.UsecaseHTTP) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if userID := r.Context().Value(usecase.UserIDContextKey); userID != nil {
-			err := u.DeleteURLS(r.Context(), r.Body, userID.(string))
+			err := u.DeleteURLs(r.Context(), r.Body, userID.(string))
 			if err != nil {
 				http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 				return

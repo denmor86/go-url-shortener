@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package shortener;
+
+option go_package = "internal/gen";
+
+message URL {
+  string original = 1;
+  string shorten = 2;
+}
+
+message ShortURL {
+  string id = 1;
+  string url = 2;
+}
+
+message EncodeURLRequest {
+  string user_id = 1;
+  string url = 2;
+}
+
+message EncodeURLResponse {
+  string result = 1;
+}
+
+message EncodeURLsRequest {
+  string user_id = 1;
+  repeated string urls = 2;
+}
+
+message EncodeURLsResponse {
+  repeated ShortURL results = 1;
+}
+
+message GetURLsRequest {
+  string user_id = 1;
+}
+
+message GetURLsResponse {
+  repeated URL results = 1;
+}
+
+message DecodeURLRequest {
+  string url = 1;
+}
+
+message DecodeURLResponse {
+  string result = 1;
+}
+
+message StatisticRequest {
+  string user_id = 1;
+}
+
+message StatisticResponse {
+  int32 urls = 1;
+  int32 users = 2;
+}
+
+message DeleteURLsRequest {
+  string user_id = 1;
+  repeated string urls = 2;
+}
+
+message DeleteURLsResponse {
+  repeated string urls = 1;
+}
+
+service Shortener {
+  rpc DecodeURL(DecodeURLRequest) returns (DecodeURLResponse);
+  rpc EncodeURL(EncodeURLRequest) returns (EncodeURLResponse);
+  rpc EncodeURLs(EncodeURLsRequest) returns (EncodeURLsResponse);
+  rpc GetURLs(GetURLsRequest) returns (GetURLsResponse);
+  rpc DeleteURLs(DeleteURLsRequest) returns (DeleteURLsResponse);
+  rpc GetStatistic(StatisticRequest) returns (StatisticResponse);
+}

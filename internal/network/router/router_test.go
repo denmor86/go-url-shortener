@@ -40,10 +40,10 @@ func TestHandleRouter(t *testing.T) {
 	store.AddRecord(context.Background(), storage.TableRecord{OriginalURL: "https://practicum.yandex.ru/", ShortURL: "12345678"})
 	store.AddRecord(context.Background(), storage.TableRecord{OriginalURL: "https://google.com", ShortURL: "iFBc_bhG"})
 	worker := workerpool.NewWorkerPool(runtime.NumCPU())
-	usecase := usecase.NewUsecase(cfg, store, worker)
+	usecase := usecase.NewUsecaseHTTP(cfg, store, worker)
 	worker.Run()
 
-	ts := httptest.NewServer(HandleRouter(usecase))
+	ts := httptest.NewServer(HandleRouter(cfg, usecase))
 	defer ts.Close()
 
 	var testTable = []struct {

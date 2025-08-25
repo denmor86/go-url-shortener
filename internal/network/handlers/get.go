@@ -10,7 +10,7 @@ import (
 )
 
 // DecodeURL - метод-обработчик получения запроса на получение оригинального URL по короткой ссылке
-func DecodeURL(u *usecase.Usecase) http.HandlerFunc {
+func DecodeURL(u *usecase.UsecaseHTTP) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		var shortURL string
@@ -38,7 +38,7 @@ func DecodeURL(u *usecase.Usecase) http.HandlerFunc {
 }
 
 // PingStorage - метод-обработчик проверки соединения с хранилищем данных
-func PingStorage(u *usecase.Usecase) http.HandlerFunc {
+func PingStorage(u *usecase.UsecaseHTTP) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := u.PingStorage(r.Context()); err != nil {
 			http.Error(w, errors.Cause(err).Error(), http.StatusInternalServerError)
@@ -48,12 +48,12 @@ func PingStorage(u *usecase.Usecase) http.HandlerFunc {
 	}
 }
 
-// GetURLS - метод-обработчик получения данных о сокращенных URL пользователя
-func GetURLS(u *usecase.Usecase) http.HandlerFunc {
+// GetURLs - метод-обработчик получения данных о сокращенных URL пользователя
+func GetURLs(u *usecase.UsecaseHTTP) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if userID := r.Context().Value(usecase.UserIDContextKey); userID != nil {
-			responce, err := u.GetURLS(r.Context(), userID.(string))
+			responce, err := u.GetURLs(r.Context(), userID.(string))
 			if err != nil {
 				http.Error(w, errors.Cause(err).Error(), http.StatusBadRequest)
 				return
@@ -70,7 +70,7 @@ func GetURLS(u *usecase.Usecase) http.HandlerFunc {
 }
 
 // GetStats - метод-обработчик получения данных о статистике сокращенных URLs
-func GetStats(u *usecase.Usecase) http.HandlerFunc {
+func GetStats(u *usecase.UsecaseHTTP) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		responce, err := u.GetStatistic(r.Context())
 		if err != nil {
