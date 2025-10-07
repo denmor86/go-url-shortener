@@ -18,6 +18,8 @@ import (
 type Config struct {
 	// ListenAddr - адрес сервера
 	ListenAddr string `env:"SERVER_ADDRESS" json:"server_address"`
+	// GRPCAddr - адрес GRPC сервера
+	GRPCAddr string `env:"GRPC_ADDRESS" json:"grpc_address"`
 	// BaseURL - базовый URL для формирования коротких ссылок
 	BaseURL string `env:"BASE_URL" json:"base_url"`
 	// ShortURLLen - длинна сгенерированных коротких ссылок
@@ -38,11 +40,14 @@ type Config struct {
 	HTTPSEnabled bool `env:"ENABLE_HTTPS" json:"enable_https"`
 	// ConfigFilePath - путь к файлу конфигурации
 	ConfigFilePath string `env:"CONFIG" json:"-"`
+	// TrustedSubnet - доверенная подсеть
+	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 }
 
 // Настройки по-умолчанию
 const (
 	DefaultListenServer    = "localhost:8080"
+	DefaultGRPCAddr        = ":8081"
 	DefaultBaseURL         = "http://" + DefaultListenServer
 	DefaultShortURLlen     = 8
 	DefaultLogLevel        = "info"
@@ -53,6 +58,7 @@ const (
 	DefaultDebugEnabled    = false
 	DefaultHTTPSEnabled    = false
 	DefaultConfigFilePath  = ""
+	DefaultTrustedSubnet   = ""
 )
 
 func (cfg *Config) parseFromEnv() {
@@ -63,16 +69,18 @@ func (cfg *Config) parseFromEnv() {
 func (cfg *Config) parseFromFlags() {
 
 	pflag.StringVarP(&cfg.ListenAddr, "server", "a", DefaultListenServer, "Server listen address in a form host:port.")
+	pflag.StringVarP(&cfg.GRPCAddr, "grpc", "g", DefaultGRPCAddr, "Server GRPC address as host:port")
 	pflag.StringVarP(&cfg.BaseURL, "base_url", "b", DefaultBaseURL, "Server base URL.")
-	pflag.IntVarP(&cfg.ShortURLLen, "url_len", "n", DefaultShortURLlen, "Short URL length.")
-	pflag.StringVarP(&cfg.LogLevel, "log_level", "l", DefaultLogLevel, "Log level.")
+	pflag.IntVar(&cfg.ShortURLLen, "url_len", DefaultShortURLlen, "Short URL length.")
+	pflag.StringVar(&cfg.LogLevel, "log_level", DefaultLogLevel, "Log level.")
 	pflag.StringVarP(&cfg.FileStoragePath, "file_storage_path", "f", filepath.Join(os.TempDir(), DefaultCacheFileName), "Path to cache file.")
 	pflag.StringVarP(&cfg.DatabaseDSN, "db_dsn", "d", DefaultDatabaseDSN, "Database DSN")
-	pflag.DurationVarP(&cfg.DatabaseTimeout, "db_timeout", "t", DefaultDatabaseTimeout, "Database timeout connection, seconds.")
-	pflag.StringVarP(&cfg.JWTSecret, "jwt_secret", "j", DefaultJWTSecret, "Secret to JWT")
-	pflag.BoolVarP(&cfg.DebugEnable, "debug", "m", DefaultDebugEnabled, "Debug mode")
+	pflag.DurationVar(&cfg.DatabaseTimeout, "db_timeout", DefaultDatabaseTimeout, "Database timeout connection, seconds.")
+	pflag.StringVar(&cfg.JWTSecret, "jwt_secret", DefaultJWTSecret, "Secret to JWT")
+	pflag.BoolVar(&cfg.DebugEnable, "debug", DefaultDebugEnabled, "Debug mode")
 	pflag.BoolVarP(&cfg.HTTPSEnabled, "https", "s", DefaultHTTPSEnabled, "Enable https")
 	pflag.StringVarP(&cfg.ConfigFilePath, "config", "c", DefaultConfigFilePath, "Path to config file.")
+	pflag.StringVarP(&cfg.TrustedSubnet, "trusted_subnet", "t", DefaultTrustedSubnet, "Trusted subnet")
 
 	pflag.Parse()
 }
@@ -92,6 +100,10 @@ func (cfg *Config) parseFromFile() {
 	// Определение адреса сервера
 	if cfg.ListenAddr == DefaultListenServer {
 		cfg.ListenAddr = tmp.ListenAddr
+	}
+	// Определение GRPC адреса сервера
+	if cfg.GRPCAddr == DefaultGRPCAddr {
+		cfg.GRPCAddr = tmp.GRPCAddr
 	}
 	// Определение базового URL
 	if cfg.BaseURL == DefaultBaseURL {
@@ -129,6 +141,10 @@ func (cfg *Config) parseFromFile() {
 	if !cfg.HTTPSEnabled {
 		cfg.HTTPSEnabled = tmp.HTTPSEnabled
 	}
+	// Определение доверенной подсети
+	if cfg.TrustedSubnet == DefaultTrustedSubnet {
+		cfg.TrustedSubnet = tmp.TrustedSubnet
+	}
 }
 
 // NewConfig - метод формирования конфигурации приложения. Используются переменные окружения и флаги запуска приложения.
@@ -153,14 +169,16 @@ func NewConfig() *Config {
 func NewDefaultConfig() *Config {
 	return &Config{
 		ListenAddr:      DefaultListenServer,
+		GRPCAddr:        DefaultGRPCAddr,
 		BaseURL:         DefaultBaseURL,
 		ShortURLLen:     DefaultShortURLlen,
 		LogLevel:        DefaultLogLevel,
 		FileStoragePath: filepath.Join(os.TempDir(), DefaultCacheFileName),
 		DatabaseDSN:     DefaultDatabaseDSN,
 		JWTSecret:       DefaultJWTSecret,
-		DebugEnable:     true,
-		HTTPSEnabled:    false,
+		DebugEnable:     DefaultDebugEnabled,
+		HTTPSEnabled:    DefaultHTTPSEnabled,
 		ConfigFilePath:  DefaultConfigFilePath,
+		TrustedSubnet:   DefaultTrustedSubnet,
 	}
 }

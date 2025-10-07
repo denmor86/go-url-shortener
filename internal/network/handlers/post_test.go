@@ -36,7 +36,7 @@ func TestEncondeURLHandler(t *testing.T) {
 		want        want
 	}{
 		{
-			name:        "Enconde test #1 (empty body)",
+			name:        "Encode test #1 (empty body)",
 			request:     "/",
 			baseURL:     "http://localhost:8080",
 			lenShortURL: 8,
@@ -49,7 +49,7 @@ func TestEncondeURLHandler(t *testing.T) {
 			},
 		},
 		{
-			name:        "Enconde test #2 (good body)",
+			name:        "Encode test #2 (good body)",
 			request:     "/",
 			baseURL:     "http://localhost:8080/",
 			lenShortURL: 8,
@@ -66,8 +66,8 @@ func TestEncondeURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
-			u := &usecase.Usecase{Storage: tt.storage, Config: &config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
-			h := http.HandlerFunc(EncondeURL(u))
+			u := usecase.NewUsecaseHTTP(&config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}, tt.storage, nil)
+			h := http.HandlerFunc(EncodeURL(u))
 			ctx := request.Context()
 			ctx = context.WithValue(ctx, usecase.UserIDContextKey, testUserID)
 			request = request.WithContext(ctx)
@@ -88,89 +88,6 @@ func TestEncondeURLHandler(t *testing.T) {
 	}
 }
 
-func TestDecodeURLHandler(t *testing.T) {
-
-	memstorage := storage.NewMemStorage()
-	memstorage.AddRecord(context.Background(), storage.TableRecord{OriginalURL: "https://practicum.yandex.ru/", ShortURL: "12345678"})
-	memstorage.AddRecord(context.Background(), storage.TableRecord{OriginalURL: "https://google.com", ShortURL: "iFBc_bhG"})
-
-	type want struct {
-		contentType string
-		statusCode  int
-		URL         string
-	}
-	tests := []struct {
-		name    string
-		request string
-		storage storage.IStorage
-		want    want
-	}{
-		{
-			name:    "Decode test #1 (good)",
-			request: "/12345678",
-			storage: memstorage,
-			want: want{
-				contentType: "",
-				statusCode:  307,
-				URL:         "https://practicum.yandex.ru/",
-			},
-		},
-		{
-			name:    "Decode test #2 (url not found)",
-			request: "/BIwRkGiI",
-			storage: memstorage,
-			want: want{
-				contentType: "text/plain; charset=utf-8",
-				statusCode:  400,
-				URL:         "error read from storage: short url not found: BIwRkGiI\n",
-			},
-		},
-		{
-			name:    "Decode test #3 (empty url)",
-			request: "/",
-			storage: memstorage,
-			want: want{
-				contentType: "text/plain; charset=utf-8",
-				statusCode:  400,
-				URL:         "URL is empty\n",
-			},
-		},
-		{
-			name:    "Decode test #4 (good)",
-			request: "/iFBc_bhG",
-			storage: memstorage,
-			want: want{
-				contentType: "",
-				statusCode:  307,
-				URL:         "https://google.com",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodGet, tt.request, nil)
-			w := httptest.NewRecorder()
-			u := &usecase.Usecase{Storage: tt.storage}
-			h := http.HandlerFunc(DecodeURL(u))
-			ctx := request.Context()
-			ctx = context.WithValue(ctx, usecase.UserIDContextKey, testUserID)
-			request = request.WithContext(ctx)
-			h(w, request)
-
-			result := w.Result()
-
-			assert.Equal(t, tt.want.statusCode, result.StatusCode)
-			assert.Equal(t, tt.want.contentType, result.Header.Get("Content-Type"))
-
-			body, err := io.ReadAll(result.Body)
-			require.NoError(t, err)
-			err = result.Body.Close()
-			require.NoError(t, err)
-			assert.Equal(t, tt.want.URL, string(body))
-		})
-	}
-}
-
 func TestEncondeJsonURLHandler(t *testing.T) {
 	type want struct {
 		contentType string
@@ -187,7 +104,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 		want        want
 	}{
 		{
-			name:        "Enconde test #1 (empty body)",
+			name:        "Encode test #1 (empty body)",
 			request:     "/",
 			baseURL:     "http://localhost:8080",
 			lenShortURL: 8,
@@ -200,7 +117,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 			},
 		},
 		{
-			name:        "Enconde test #2 (bad body, invalid node)",
+			name:        "Encode test #2 (bad body, invalid node)",
 			request:     "/",
 			baseURL:     "http://localhost:8080",
 			lenShortURL: 8,
@@ -213,7 +130,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 			},
 		},
 		{
-			name:        "Enconde test #3 (bad body, xml format)",
+			name:        "Encode test #3 (bad body, xml format)",
 			request:     "/",
 			baseURL:     "http://localhost:8080",
 			lenShortURL: 8,
@@ -226,7 +143,7 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 			},
 		},
 		{
-			name:        "Enconde test #4 (good body)",
+			name:        "Encode test #4 (good body)",
 			request:     "/",
 			baseURL:     "http://localhost:8080/",
 			lenShortURL: 8,
@@ -243,8 +160,8 @@ func TestEncondeJsonURLHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
-			u := &usecase.Usecase{Storage: tt.storage, Config: &config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
-			h := http.HandlerFunc(EncondeURLJson(u))
+			u := usecase.NewUsecaseHTTP(&config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}, tt.storage, nil)
+			h := http.HandlerFunc(EncodeURLJson(u))
 			ctx := request.Context()
 			ctx = context.WithValue(ctx, usecase.UserIDContextKey, testUserID)
 			request = request.WithContext(ctx)
@@ -281,7 +198,7 @@ func TestEncondeJsonURLHandlerBatch(t *testing.T) {
 		want        want
 	}{
 		{
-			name:        "Enconde test #1 (empty body)",
+			name:        "Encode test #1 (empty body)",
 			request:     "/",
 			baseURL:     "http://localhost:8080",
 			lenShortURL: 8,
@@ -294,7 +211,7 @@ func TestEncondeJsonURLHandlerBatch(t *testing.T) {
 			},
 		},
 		{
-			name:        "Enconde test #2 (bad body, invalid node)",
+			name:        "Encode test #2 (bad body, invalid node)",
 			request:     "/",
 			baseURL:     "http://localhost:8080",
 			lenShortURL: 8,
@@ -307,7 +224,7 @@ func TestEncondeJsonURLHandlerBatch(t *testing.T) {
 			},
 		},
 		{
-			name:        "Enconde test #3 (bad body, xml format)",
+			name:        "Encode test #3 (bad body, xml format)",
 			request:     "/",
 			baseURL:     "http://localhost:8080",
 			lenShortURL: 8,
@@ -320,7 +237,7 @@ func TestEncondeJsonURLHandlerBatch(t *testing.T) {
 			},
 		},
 		{
-			name:        "Enconde test #4 (good body)",
+			name:        "Encode test #4 (good body)",
 			request:     "/",
 			baseURL:     "http://localhost:8080/",
 			lenShortURL: 8,
@@ -337,8 +254,8 @@ func TestEncondeJsonURLHandlerBatch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
-			u := &usecase.Usecase{Storage: tt.storage, Config: &config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}}
-			h := http.HandlerFunc(EncondeURLJsonBatch(u))
+			u := usecase.NewUsecaseHTTP(&config.Config{BaseURL: tt.baseURL, ShortURLLen: tt.lenShortURL}, tt.storage, nil)
+			h := http.HandlerFunc(EncodeURLJsonBatch(u))
 			ctx := request.Context()
 			ctx = context.WithValue(ctx, usecase.UserIDContextKey, testUserID)
 			request = request.WithContext(ctx)

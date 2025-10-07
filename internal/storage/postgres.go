@@ -12,6 +12,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
+
+	"github.com/denmor86/go-url-shortener/internal/logger"
 )
 
 // UniqueViolation - ошибка нарушения уникальности URL
@@ -61,6 +63,10 @@ const (
 	GetUserlURL = `SELECT user_uuid, original_url, short_url FROM urls WHERE user_uuid=$1 AND NOT is_deleted;`
 	// DeleteUserURL - SQL запрос отметки записи для удаления по пользователю и короткой ссылке
 	DeleteUserURL = `UPDATE urls SET is_deleted=TRUE WHERE user_uuid=$1 AND short_url=$2`
+	// GetURLsCounts - SQL запрос c получением количества записей
+	GetURLsCounts = `SELECT count(*) FROM urls;`
+	// GetURLsCounts - SQL запрос c получением количества пользователей
+	GetUsersCounts = `SELECT count(DISTINCT user_uuid)	FROM urls WHERE user_uuid IS NOT NULL;`
 )
 
 // NewDatabaseStorage - метод создания хранилища данных в БД
@@ -263,4 +269,21 @@ func (s *DatabaseStorage) DeleteURLs(ctx context.Context, userID string, shortUR
 // Ping - метод проверки соединения с БД
 func (s *DatabaseStorage) Ping(ctx context.Context) error {
 	return s.Pool.Ping(ctx)
+}
+
+// GetStat - метод получения статистики по URLs
+func (s *DatabaseStorage) GetStat(ctx context.Context) RecordStatistic {
+	var Urls int
+	err := s.Pool.QueryRow(ctx, GetURLsCounts).Scan(&Urls)
+	if err != nil {
+		logger.Warn("Error get URLs count")
+		Urls = 0
+	}
+	var Users int
+	err = s.Pool.QueryRow(ctx, GetUsersCounts).Scan(&Users)
+	if err != nil {
+		logger.Warn("Error get Users count")
+		Users = 0
+	}
+	return RecordStatistic{URLs: Urls, Users: Users}
 }

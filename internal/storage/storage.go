@@ -18,11 +18,18 @@ type TableRecord struct {
 	IsDeleted   bool   // признак необходимости удаления записи из хранилища, предполагается, что будет отдельный сервис который будет физически удалять записи из БД
 }
 
+// RecordStatistic - модели статистики записей в БД
+type RecordStatistic struct {
+	URLs  int // количество сокращённых URL
+	Users int // количество пользователей
+}
+
 // ReadStorage интерфейс для работы с чтением данных из хранилища
 type ReadStorage interface {
 	GetRecord(context.Context, string) (string, error)
 	GetUserRecords(context.Context, string) ([]TableRecord, error)
 	Ping(ctx context.Context) error
+	GetStat(ctx context.Context) RecordStatistic
 }
 
 // WriteStorage интерфейс для работы с записью данных в хранилище

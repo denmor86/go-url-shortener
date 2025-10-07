@@ -93,3 +93,15 @@ func (s *MemStorage) Size() int {
 func (s *MemStorage) Ping(ctx context.Context) error {
 	return nil
 }
+
+// GetStat - метод получения статистики по URLs
+func (s *MemStorage) GetStat(ctx context.Context) RecordStatistic {
+
+	userIDs := make(map[string]struct{}) // Используем map для хранения уникальных UserID
+	for _, record := range s.Urls {
+		if record.UserID != "" { // Проверяем, чтобы UserID не был пустым
+			userIDs[record.UserID] = struct{}{}
+		}
+	}
+	return RecordStatistic{URLs: len(s.Urls), Users: len(userIDs)}
+}

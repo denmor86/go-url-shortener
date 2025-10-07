@@ -4,8 +4,8 @@ package app
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,10 +15,12 @@ import (
 
 	"github.com/pkg/errors"
 
+	"google.golang.org/grpc"
+
 	"github.com/denmor86/go-url-shortener/internal/config"
-	"github.com/denmor86/go-url-shortener/internal/helpers"
 	"github.com/denmor86/go-url-shortener/internal/logger"
-	"github.com/denmor86/go-url-shortener/internal/network/router"
+	grpcServer "github.com/denmor86/go-url-shortener/internal/server/grpc"
+	httpServer "github.com/denmor86/go-url-shortener/internal/server/http"
 	"github.com/denmor86/go-url-shortener/internal/storage"
 	"github.com/denmor86/go-url-shortener/internal/usecase"
 	"github.com/denmor86/go-url-shortener/internal/workerpool"
@@ -26,39 +28,11 @@ import (
 
 // App - модель данных приложения
 type App struct {
-	Config  *config.Config
-	Storage storage.IStorage
-}
-
-func startServer(server *http.Server, https bool) error {
-	if https {
-		return server.ListenAndServeTLS("", "")
-	}
-	return server.ListenAndServe()
-}
-
-func createServer(listenAddr string, use *usecase.Usecase) *http.Server {
-	// Генерируем самоподписанный сертификат
-	cert, key, err := helpers.GenerateSelfSignedCert()
-	if err != nil {
-		logger.Error("error generate certificate", err.Error())
-	}
-
-	// Создаем TLS конфигурацию
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{
-			{
-				Certificate: [][]byte{cert},
-				PrivateKey:  key,
-			},
-		},
-	}
-
-	return &http.Server{
-		Addr:      listenAddr,
-		Handler:   router.HandleRouter(use),
-		TLSConfig: tlsConfig,
-	}
+	Config       *config.Config
+	Storage      storage.IStorage
+	httpServer   *http.Server
+	grpcServer   *grpc.Server
+	grpcListener net.Listener
 }
 
 // Run - метод иницилизации приложения и запуска сервера обработки сообщений
@@ -72,7 +46,6 @@ func (a *App) Run() {
 	)
 
 	workerpool := workerpool.NewWorkerPool(runtime.NumCPU())
-	use := usecase.NewUsecase(a.Config, a.Storage, workerpool)
 
 	workerpool.Run()
 	defer func() {
@@ -81,24 +54,77 @@ func (a *App) Run() {
 		workerpool.Wait()
 	}()
 
+	// Запускаем серверы
+	if len(a.Config.ListenAddr) > 0 {
+		use := usecase.NewUsecaseHTTP(a.Config, a.Storage, workerpool)
+		go a.runHTTP(use)
+	}
+	if len(a.Config.GRPCAddr) > 0 {
+		use := usecase.NewUsecaseGRPC(a.Config, a.Storage, workerpool)
+		go a.runGRPC(use)
+	}
+
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
-	server := createServer(a.Config.ListenAddr, use)
-
-	go func() {
-
-		if err := startServer(server, a.Config.HTTPSEnabled); err != nil && err != http.ErrServerClosed {
-			logger.Error("error listen server", err.Error())
-		}
-	}()
-
+	// Ждем сигнал остановки
 	<-stop
-	logger.Info("Shutdown server")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := server.Shutdown(ctx); err != nil {
-		logger.Error("error shutdown server", err.Error())
+	logger.Info("Shutdown signal received")
+	a.shutdown()
+}
+
+// runGRPC - метод запускает GRPC сервер.
+func (a *App) runGRPC(use *usecase.UsecaseGRPC) {
+	listen, err := net.Listen("tcp", a.Config.GRPCAddr)
+	if err != nil {
+		logger.Error("GRPC server starting failed", err)
+		return
 	}
-	logger.Info("Server stopped")
+	a.grpcListener = listen
+	a.grpcServer = grpcServer.NewServer(use)
+
+	logger.Info("Starting GRPC server on", a.Config.GRPCAddr)
+
+	if err := a.grpcServer.Serve(listen); err != nil {
+		logger.Error("GRPC server error", err.Error())
+	}
+}
+
+// runHTTP - метод запускает http сервер.
+func (a *App) runHTTP(use *usecase.UsecaseHTTP) {
+	a.httpServer = httpServer.NewServer(a.Config, use)
+	logger.Info("Starting HTTP server on", a.Config.ListenAddr)
+	if err := httpServer.StartServer(a.httpServer, a.Config.HTTPSEnabled); err != nil && err != http.ErrServerClosed {
+		logger.Error("Error listen server", err.Error())
+	}
+}
+
+// shutdown - метод остановки запущенных серверов
+func (a *App) shutdown() {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Shutdown для GRPC сервера
+	if a.grpcServer != nil {
+		logger.Info("Stopping GRPC server gracefully...")
+		a.grpcServer.GracefulStop()
+		logger.Info("GRPC server stopped")
+	}
+
+	// Закрытие GRPC listener
+	if a.grpcListener != nil {
+		if err := a.grpcListener.Close(); err != nil {
+			logger.Error("GRPC listener close error", err.Error())
+		}
+	}
+
+	// Shutdown для HTTP сервера
+	if a.httpServer != nil {
+		logger.Info("Stopping HTTP server gracefully...")
+		if err := a.httpServer.Shutdown(ctx); err != nil {
+			logger.Error("HTTP server shutdown error", err.Error())
+		} else {
+			logger.Info("HTTP server stopped")
+		}
+	}
 }

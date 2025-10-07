@@ -3,7 +3,7 @@
     "base_url": "http://localhost:8080",
     "database_dsn": "postgres://postgres:root@localhost:5432/shortener?sslmode=disable",
 	"log_level": "debug",
-    "enable_https": true,
+    "enable_https": false,
 	"enable_debug": true,
 	"jwt_secret": "test"
 } 
